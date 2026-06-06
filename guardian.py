@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-GitLab Security Guardian - OpenRouter Mega-Ensemble Orchestrator with Consensus Engine
+GitLab Security Guardian - OpenRouter Mega-Ensemble Orchestrator with Auto-Remediation
 
 This script orchestrates the autonomous security auditing of GitLab Merge Requests.
 It fetches MR code changes, queries all free OpenRouter models concurrently,
 calculates a consensus score for each finding, synthesizes their descriptions,
+automatically generates and applies security patches for findings >= 50% consensus,
 and comments the consolidated report back on the Merge Request.
 """
 
@@ -14,6 +15,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import urllib.parse
 from collections import Counter
 from typing import Dict, Any, List
@@ -77,7 +79,6 @@ def get_free_models() -> List[str]:
             model_id = m.get("id", "")
             pricing = m.get("pricing", {})
             
-            # Check if model is free (ends with :free, or cost is 0)
             is_free_by_name = model_id.endswith(":free")
             try:
                 is_free_by_price = (
@@ -91,7 +92,6 @@ def get_free_models() -> List[str]:
                 if model_id:
                     free_ids.append(model_id)
                     
-        # Remove duplicates
         free_ids = sorted(list(set(free_ids)))
         logger.info(f"Successfully fetched {len(models_list)} models. Found {len(free_ids)} free models.")
         
@@ -192,7 +192,6 @@ def extract_json(raw_text: str) -> List[Dict[str, Any]]:
 def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], api_key: str) -> Dict[str, str]:
     """
     Calls Llama 3.3 to synthesize multiple descriptions for each grouped vulnerability.
-    Returns a dict mapping 'file:line' to the synthesized description.
     """
     if not grouped_list:
         return {}
@@ -235,7 +234,6 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], api_key
         result = response.json()
         content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
         
-        # Clean and parse JSON
         cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
         code_block_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, flags=re.DOTALL)
         if code_block_match:
@@ -253,10 +251,179 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], api_key
     return {}
 
 
+def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
+    """
+    Loops through findings with Consensus Score >= 50% and calls Llama to secure the code.
+    Checks if ORIGINAL block matches target file content.
+    Returns:
+        (remediated_results, pending_remediations)
+    """
+    api_key = os.environ.get('OPENROUTER_API_KEY')
+    if not api_key:
+        logger.error("OPENROUTER_API_KEY is not set in environment. Skipping auto-remediation.")
+        return [], []
+
+    remediated_results = []
+    pending_remediations = []
+    
+    # Filter findings with score >= 50%
+    high_confidence_findings = [g for g in consolidated_findings if g.get("score", 0) >= 50.0]
+    
+    if not high_confidence_findings:
+        logger.info("No high-confidence findings (Consensus Score >= 50%) to auto-remediate.")
+        return [], []
+        
+    logger.info(f"Attempting to auto-remediate {len(high_confidence_findings)} findings...")
+    
+    # Group findings by file path to process each file
+    findings_by_file = {}
+    for g in high_confidence_findings:
+        file_path = g.get("file")
+        if not file_path or not os.path.exists(file_path):
+            logger.warning(f"File {file_path} does not exist or was not specified. Skipping.")
+            continue
+        if file_path not in findings_by_file:
+            findings_by_file[file_path] = []
+        findings_by_file[file_path].append(g)
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://gitlab.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator",
+        "X-Title": "GitLab Security Guardian"
+    }
+
+    for file_path, file_findings in findings_by_file.items():
+        # Sort findings by line number descending to avoid line shift issues when applying patches
+        file_findings.sort(key=lambda x: int(x.get("line", 0)) if str(x.get("line", "")).isdigit() else 0, reverse=True)
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                file_content = f.read().replace("\r\n", "\n")
+        except Exception as e:
+            logger.error(f"Failed to read file {file_path}: {str(e)}")
+            continue
+
+        for g in file_findings:
+            line_val = g.get("line")
+            description = g.get("synthesized_description", "")
+            vuln_type = g.get("vulnerability", "N/A")
+            
+            try:
+                line_num = int(line_val)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid line number {line_val} for finding in {file_path}. Skipping.")
+                continue
+
+            lines = file_content.splitlines()
+            line_idx = line_num - 1
+            if line_idx < 0 or line_idx >= len(lines):
+                logger.warning(f"Line number {line_num} out of bounds for file {file_path}. Skipping.")
+                continue
+
+            # Extract context window (5 lines before, 5 lines after the target line)
+            start_idx = max(0, line_idx - 5)
+            end_idx = min(len(lines), line_idx + 6)
+            original_block = "\n".join(lines[start_idx:end_idx])
+
+            if not original_block.strip():
+                continue
+
+            system_prompt = (
+                "You are an expert security engineer.\n"
+                "Your task is to fix the security vulnerability in the provided file content.\n"
+                "You must return the correction in the following search-and-replace format:\n\n"
+                "<<<<<<< ORIGINAL\n"
+                "[exact original code block from the file to be replaced]\n"
+                "=======\n"
+                "[corrected code block]\n"
+                ">>>>>>> CORRECTED\n\n"
+                "Ensure the ORIGINAL section matches the file content exactly (including spaces, indentation, and comments).\n"
+                "Make the ORIGINAL section large enough to contain the vulnerable code and any surrounding context needed to locate it uniquely.\n"
+                "Return ONLY the conflict markers block. Do not include any introductory or concluding text, explanations, or markdown code fences outside the markers."
+            )
+            
+            user_content = (
+                f"File: {file_path}\n"
+                f"Vulnerability Type: {vuln_type}\n"
+                f"Line: {line_num}\n"
+                f"Description: {description}\n\n"
+                f"File Content:\n"
+                f"```\n{file_content}\n```"
+            )
+            
+            payload = {
+                "model": "meta-llama/llama-3.3-70b-instruct:free",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ]
+            }
+            
+            try:
+                logger.info(f"Requesting remediation patch for {file_path} at line {line_num}...")
+                response = requests.post(url, headers=headers, json=payload, timeout=60)
+                response.raise_for_status()
+                result = response.json()
+                corrected_raw = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                
+                # Parse the conflict markers
+                pattern = r"<<<<<<< ORIGINAL\n(.*?)\n=======\n(.*?)\n>>>>>>> CORRECTED"
+                match = re.search(pattern, corrected_raw, re.DOTALL)
+                
+                if match:
+                    original_code = match.group(1)
+                    corrected_code = match.group(2)
+                    
+                    original_clean = original_code.replace("\r\n", "\n")
+                    corrected_clean = corrected_code.replace("\r\n", "\n")
+                    
+                    # Verify if the original block matches the target file content
+                    if original_clean in file_content:
+                        # Add to pending remediations
+                        pending_remediations.append({
+                            "file": file_path,
+                            "original": original_clean,
+                            "corrected": corrected_clean
+                        })
+                        
+                        # Temporarily apply in memory to handle subsequent patches in the same file
+                        file_content = file_content.replace(original_clean, corrected_clean, 1)
+                        
+                        status = "✅ Patched & Applied"
+                        logger.info(f"Remediation patch validated for {file_path} at line {line_num}.")
+                    else:
+                        status = "❌ Failed to apply (Original block match failed)"
+                        logger.warning(f"Original block not found in {file_path} for line {line_num}.")
+                else:
+                    status = "❌ Failed to apply (Response format unparseable)"
+                    logger.warning(f"Failed to parse conflict markers in response for {file_path} at line {line_num}.")
+                
+                remediated_results.append({
+                    "file": file_path,
+                    "line": line_num,
+                    "vulnerability": vuln_type,
+                    "status": status
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to auto-remediate {file_path} at line {line_num}: {str(e)}")
+                remediated_results.append({
+                    "file": file_path,
+                    "line": line_num,
+                    "vulnerability": vuln_type,
+                    "status": f"❌ Failed to apply ({str(e)})"
+                })
+
+    return remediated_results, pending_remediations
+
+
 def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     """
     Runs concurrent analysis of the diff using all available free OpenRouter models,
-    then aggregates findings using a consensus and confidence score calculation.
+    then aggregates findings using a consensus and confidence score calculation,
+    and runs the auto-remediation engine for high-confidence issues.
     """
     logger.info("Preparing diff content for OpenRouter analysis...")
     
@@ -273,13 +440,11 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
         logger.info("No code changes detected in the diff.")
         return "✅ **No code changes detected in this Merge Request.**"
         
-    # Get free models dynamically
     models = get_free_models()
     
     findings_by_model = {}
     successful_models_count = 0
 
-    # ThreadPoolExecutor with max_workers=5 to avoid HTTP 429 Rate Limits
     logger.info(f"Spawning concurrent threads with max_workers=5 to query {len(models)} models...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_model = {
@@ -296,7 +461,6 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
                     findings_by_model[model] = parsed_findings
                 successful_models_count += 1
             except Exception as exc:
-                # Silently ignore model execution failures (404, 429, 503)
                 logger.warning(f"Silently ignoring failure from model {model} (Error: {exc})")
 
     if successful_models_count == 0:
@@ -326,11 +490,7 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     final_groups = []
     for (file_path, line_val), data in groups.items():
         unique_models = set(data["models"])
-        
-        # Consensus Score = (models flagging this line) / (total successful models)
         score_pct = (len(unique_models) / successful_models_count) * 100
-        
-        # Select the most common vulnerability type reported for this group
         vuln_type = Counter(data["vulnerability_types"]).most_common(1)[0][0]
         
         final_groups.append({
@@ -347,12 +507,29 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     # Sort grouped findings by Consensus Score descending
     final_groups.sort(key=lambda x: x["score"], reverse=True)
 
-    # Synthesize descriptions using LLM
+    # Synthesize descriptions
     synthesized_map = {}
     try:
         synthesized_map = synthesize_descriptions_with_llm(final_groups, api_key)
     except Exception as e:
         logger.warning(f"Failed to run synthesis: {str(e)}")
+
+    # Map the synthesized descriptions back
+    for g in final_groups:
+        key = f"{g['file']}:{g['line']}"
+        if key in synthesized_map:
+            g["synthesized_description"] = synthesized_map[key]
+        else:
+            unique_descs = list(set([d for d in g["descriptions"] if d]))
+            g["synthesized_description"] = max(unique_descs, key=len) if unique_descs else "No description provided."
+
+    # Run Auto-Remediation Engine
+    remediated_results = []
+    pending_remediations = []
+    try:
+        remediated_results, pending_remediations = generate_remediations(final_groups)
+    except Exception as e:
+        logger.error(f"Auto-remediation engine failed: {str(e)}")
 
     # Format the report table
     markdown = [
@@ -362,22 +539,24 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     ]
     
     for g in final_groups:
-        key = f"{g['file']}:{g['line']}"
-        
-        # Determine description
-        if key in synthesized_map:
-            syn_desc = synthesized_map[key]
-        else:
-            # Fallback: pick the longest unique description
-            unique_descs = list(set([d for d in g["descriptions"] if d]))
-            syn_desc = max(unique_descs, key=len) if unique_descs else "No description provided."
-            
-        safe_desc = syn_desc.replace('\n', ' ').replace('|', '\\|')
+        safe_desc = g["synthesized_description"].replace('\n', ' ').replace('|', '\\|')
         markdown.append(
             f"| `{g['file']}` | {g['line']} | **{g['score']:.0f}%** | {g['vulnerability']} | {safe_desc} |"
         )
         
-    return "\n".join(markdown)
+    # Add Auto-Remediation report section
+    markdown.append("\n### 🛠️ Automated Patches Applied")
+    if remediated_results:
+        markdown.append("The Guardian attempted automatic security patches for the following findings:")
+        markdown.append("")
+        markdown.append("| File | Line | Vulnerability Type | Status |")
+        markdown.append("| :--- | :--- | :--- | :--- |")
+        for r in remediated_results:
+            markdown.append(f"| `{r['file']}` | {r['line']} | **{r['vulnerability']}** | {r['status']} |")
+    else:
+        markdown.append("No automated patches were applied (either no high-confidence findings were identified, or remediation was skipped).")
+        
+    return "\n".join(markdown), pending_remediations
 
 
 def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str, token: str) -> Dict[str, Any]:
@@ -405,6 +584,47 @@ def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str,
     return response.json()
 
 
+def git_commit_and_push(remediated_files: List[str], token: str, project_id: str, gitlab_url: str):
+    """
+    Stages, commits, and pushes the modified files back to the GitLab Merge Request repository.
+    Appends [skip ci] to prevent CI infinite pipeline loops.
+    """
+    if not remediated_files:
+        logger.info("No modified files to commit.")
+        return
+        
+    logger.info("Starting Git operations at the end of the execution...")
+    try:
+        # Check current status
+        status_res = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+        logger.info(f"Current git status:\n{status_res.stdout}")
+        
+        # Configure user info if not configured
+        subprocess.run(["git", "config", "user.name", "GitLab Security Guardian"], check=True)
+        subprocess.run(["git", "config", "user.email", "guardian@gitlab.local"], check=True)
+        
+        # Stage the files
+        for f in remediated_files:
+            logger.info(f"Adding file to git: {f}")
+            subprocess.run(["git", "add", f], check=True)
+            
+        commit_msg = "chore: apply automated security patches [skip ci]"
+        commit_res = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
+        logger.info(f"Git commit output:\n{commit_res.stdout}\n{commit_res.stderr}")
+        
+        # Configure remote URL with token for push authentication
+        parsed_url = urllib.parse.urlparse(gitlab_url)
+        git_remote_url = f"https://oauth2:{token}@{parsed_url.netloc}/{project_id}.git"
+        
+        # Push to origin targeting current branch
+        logger.info("Pushing changes to remote repository...")
+        push_res = subprocess.run(["git", "push", git_remote_url, "HEAD"], capture_output=True, text=True)
+        logger.info(f"Git push output:\n{push_res.stdout}\n{push_res.stderr}")
+        
+    except Exception as e:
+        logger.error(f"Git operations failed: {str(e)}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="GitLab Security Guardian OpenRouter Mega-Ensemble Orchestrator")
     parser.add_argument("--project-id", required=True, help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
@@ -428,12 +648,39 @@ def main():
         # 1. Fetch changes
         changes = fetch_merge_request_diff(args.project_id, args.mr_iid, args.gitlab_url, token)
         
-        # 2. Analyze using OpenRouter Ensemble with Consensus Engine
-        report_markdown = analyze_diff_ensemble(changes, openrouter_key)
+        # 2. Analyze using OpenRouter Ensemble with Consensus & Auto-Remediation
+        report_markdown, pending_remediations = analyze_diff_ensemble(changes, openrouter_key)
         
         # 3. Post comment back to GitLab MR
         full_comment = f"## 🛡️ GitLab Security Guardian Consensus Report\n\n{report_markdown}"
         post_mr_comment(args.project_id, args.mr_iid, full_comment, args.gitlab_url, token)
+        
+        # 4. Local file modifications and Git operations at the absolute end
+        if pending_remediations:
+            logger.info(f"Applying {len(pending_remediations)} pending local file modifications...")
+            modified_files = set()
+            for patch in pending_remediations:
+                file_path = patch["file"]
+                original = patch["original"]
+                corrected = patch["corrected"]
+                
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read().replace("\r\n", "\n")
+                    
+                    if original in content:
+                        new_content = content.replace(original, corrected, 1)
+                        with open(file_path, "w", encoding="utf-8") as f:
+                            f.write(new_content)
+                        modified_files.add(file_path)
+                        logger.info(f"Successfully modified file {file_path}")
+                    else:
+                        logger.warning(f"Original block not found in {file_path} at modification time.")
+                except Exception as e:
+                    logger.error(f"Failed to modify file {file_path}: {str(e)}")
+            
+            if modified_files:
+                git_commit_and_push(list(modified_files), token, args.project_id, args.gitlab_url)
         
         logger.info("Orchestration pipeline finished successfully.")
         

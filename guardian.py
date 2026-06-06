@@ -254,9 +254,9 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], api_key
 def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
     """
     Loops through findings with Consensus Score >= 30% and calls Llama to secure the code.
-    Checks if ORIGINAL block matches target file content.
+    Writes the corrected code blocks directly to local files and verifies their success.
     Returns:
-        (remediated_results, pending_remediations)
+        (remediated_results, modified_files)
     """
     api_key = os.environ.get('OPENROUTER_API_KEY')
     if not api_key:
@@ -264,7 +264,7 @@ def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
         return [], []
 
     remediated_results = []
-    pending_remediations = []
+    modified_files = set()
     
     # Filter findings with score >= 30%
     high_confidence_findings = [g for g in consolidated_findings if g.get("score", 0) >= 30.0]
@@ -305,6 +305,7 @@ def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
             logger.error(f"Failed to read file {file_path}: {str(e)}")
             continue
 
+        file_modified = False
         for g in file_findings:
             line_val = g.get("line")
             description = g.get("synthesized_description", "")
@@ -381,16 +382,9 @@ def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
                     
                     # Verify if the original block matches the target file content
                     if original_clean in file_content:
-                        # Add to pending remediations
-                        pending_remediations.append({
-                            "file": file_path,
-                            "original": original_clean,
-                            "corrected": corrected_clean
-                        })
-                        
-                        # Temporarily apply in memory to handle subsequent patches in the same file
+                        # Apply the patch in memory
                         file_content = file_content.replace(original_clean, corrected_clean, 1)
-                        
+                        file_modified = True
                         status = "✅ Patched & Applied"
                         logger.info(f"Remediation patch validated for {file_path} at line {line_num}.")
                     else:
@@ -416,7 +410,29 @@ def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
                     "status": f"❌ Failed to apply ({str(e)})"
                 })
 
-    return remediated_results, pending_remediations
+        if file_modified:
+            try:
+                # Write back the final modified content to disk
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(file_content)
+                
+                # Verify successful write by reading it back
+                with open(file_path, "r", encoding="utf-8") as f:
+                    check_content = f.read()
+                
+                if check_content:
+                    modified_files.add(file_path)
+                    logger.info(f"Successfully wrote and verified local file updates for {file_path}")
+                else:
+                    raise IOError("Read back content was empty.")
+            except Exception as e:
+                logger.error(f"Failed to write/verify modifications for {file_path}: {str(e)}")
+                # Adjust status of findings for this file to failed since writing failed
+                for r in remediated_results:
+                    if r["file"] == file_path and r["status"] == "✅ Patched & Applied":
+                        r["status"] = f"❌ Failed to apply (Write verification failed: {str(e)})"
+
+    return remediated_results, list(modified_files)
 
 
 def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
@@ -525,9 +541,9 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
 
     # Run Auto-Remediation Engine
     remediated_results = []
-    pending_remediations = []
+    remediated_files = []
     try:
-        remediated_results, pending_remediations = generate_remediations(final_groups)
+        remediated_results, remediated_files = generate_remediations(final_groups)
     except Exception as e:
         logger.error(f"Auto-remediation engine failed: {str(e)}")
 
@@ -556,7 +572,7 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     else:
         markdown.append("No automated patches were applied (either no high-confidence findings were identified, or remediation was skipped).")
         
-    return "\n".join(markdown), pending_remediations
+    return "\n".join(markdown), remediated_files
 
 
 def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str, token: str) -> Dict[str, Any]:
@@ -649,38 +665,16 @@ def main():
         changes = fetch_merge_request_diff(args.project_id, args.mr_iid, args.gitlab_url, token)
         
         # 2. Analyze using OpenRouter Ensemble with Consensus & Auto-Remediation
-        report_markdown, pending_remediations = analyze_diff_ensemble(changes, openrouter_key)
+        # Local file modifications are performed and verified inside this call
+        report_markdown, remediated_files = analyze_diff_ensemble(changes, openrouter_key)
         
         # 3. Post comment back to GitLab MR
         full_comment = f"## 🛡️ GitLab Security Guardian Consensus Report\n\n{report_markdown}"
         post_mr_comment(args.project_id, args.mr_iid, full_comment, args.gitlab_url, token)
         
-        # 4. Local file modifications and Git operations at the absolute end
-        if pending_remediations:
-            logger.info(f"Applying {len(pending_remediations)} pending local file modifications...")
-            modified_files = set()
-            for patch in pending_remediations:
-                file_path = patch["file"]
-                original = patch["original"]
-                corrected = patch["corrected"]
-                
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read().replace("\r\n", "\n")
-                    
-                    if original in content:
-                        new_content = content.replace(original, corrected, 1)
-                        with open(file_path, "w", encoding="utf-8") as f:
-                            f.write(new_content)
-                        modified_files.add(file_path)
-                        logger.info(f"Successfully modified file {file_path}")
-                    else:
-                        logger.warning(f"Original block not found in {file_path} at modification time.")
-                except Exception as e:
-                    logger.error(f"Failed to modify file {file_path}: {str(e)}")
-            
-            if modified_files:
-                git_commit_and_push(list(modified_files), token, args.project_id, args.gitlab_url)
+        # 4. Git operations occur at the absolute end of guardian.py after all reports are compiled and commented
+        if remediated_files:
+            git_commit_and_push(remediated_files, token, args.project_id, args.gitlab_url)
         
         logger.info("Orchestration pipeline finished successfully.")
         

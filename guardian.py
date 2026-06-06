@@ -294,19 +294,18 @@ def main():
     parser.add_argument("--project-id", required=True, help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
     parser.add_argument("--mr-iid", required=True, type=int, help="Merge Request Internal ID (IID)")
     parser.add_argument("--gitlab-url", default=os.getenv("GITLAB_API_URL", "https://gitlab.com"), help="GitLab base URL")
-    parser.add_argument("--token", default=os.getenv("GITLAB_TOKEN"), help="GitLab Private Access Token")
-    parser.add_argument("--openrouter-key", default=os.getenv("OPENROUTER_API_KEY"), help="OpenRouter API Key")
     
     args = parser.parse_args()
     
-    token = args.token or os.getenv("GITLAB_PERSONAL_ACCESS_TOKEN")
+    token = os.environ.get('GITLAB_TOKEN')
+    openrouter_key = os.environ.get('OPENROUTER_API_KEY')
+    
     if not token:
-        logger.error("GitLab access token not provided. Use --token or set GITLAB_TOKEN/GITLAB_PERSONAL_ACCESS_TOKEN env variables.")
+        logger.error("Environment variable 'GITLAB_TOKEN' is missing.")
         exit(1)
         
-    openrouter_key = args.openrouter_key
     if not openrouter_key:
-        logger.error("OpenRouter API Key not provided. Use --openrouter-key or set OPENROUTER_API_KEY env variable.")
+        logger.error("Environment variable 'OPENROUTER_API_KEY' is missing.")
         exit(1)
         
     try:

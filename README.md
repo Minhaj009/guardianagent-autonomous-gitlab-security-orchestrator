@@ -1,44 +1,78 @@
-# GitLab Security Guardian
+# GitLab Security Guardian 🛡️
 
-An autonomous Security Guardian project designed to continuously scan, monitor, and enforce security policies across GitLab repositories.
+An autonomous, full-stack Security Orchestrator designed to continuously scan, monitor, automatically remediate, and enforce security policies across code repositories.
 
-## Overview
+---
 
-The **GitLab Security Guardian** is an agentic, automated orchestrator built to scan codebases, detect exposed secrets, audit dependency vulnerabilities, and ensure compliance with security best practices.
+## 🚀 Key Features
 
-## Orchestrator Language
+### 1. Dynamic LLM Mega-Ensemble Orchestrator
+- **Dynamic Model Discovery**: Queries the OpenRouter API dynamically to fetch all available free models (cost = 0 or `:free` suffix).
+- **High Concurrency Scanning**: Utilizes a Python `ThreadPoolExecutor` with a pool size of 5 to concurrently dispatch MR code diffs to all free models, avoiding HTTP 429 Rate Limits.
+- **Robust Exception Handling**: Gracefully ignores transient model failures (404, 429, 503) and cleans up DeepSeek R1 `<think>...</think>` tags to keep JSON parsing stable.
+- **Environment Safety**: Credentials (`GITLAB_TOKEN` and `OPENROUTER_API_KEY`) are retrieved securely via environment variables instead of exposed CLI flags.
 
-We recommend and use **Python** for this orchestrator due to its:
-- Native support for security tooling and CLI integration.
-- Robust libraries for parsing, regex, and AST analysis.
-- First-class support for AI/LLM integration (e.g., Google GenAI, OpenAI, LangChain).
-- Clean scripting syntax ideal for DevSecOps pipelines.
+### 2. Consensus & Confidence Engine
+- **Consolidated Deduplication**: Groups identical scanner findings by file and line number.
+- **Mathematical Consensus**: Calculates a Consensus Score based on what percentage of the successful scanner models flagged the specific issue.
+- **Llama-Powered Synthesis**: Calls `meta-llama/llama-3.3-70b-instruct:free` to synthesize various model descriptions into a single, cohesive, 1-3 sentence summary.
 
-## Features
+### 3. Auto-Remediation Engine (Phase 2)
+- **High-Confidence Targeting**: Automatically targets any vulnerability with a Consensus Score of 30% or higher.
+- **Conflict Marker Patching**: Queries Llama 3.3 to rewrite the code block securely, returning the patch formatted using standard conflict markers:
+  ```diff
+  <<<<<<< ORIGINAL
+  [vulnerable code block]
+  =======
+  [corrected code block]
+  >>>>>>> CORRECTED
+  ```
+- **Line-Shift Safeguard**: Sorts all file findings in descending line number order (highest to lowest) before applying patches to prevent line-shifting corruption.
+- **Verify-before-Report Sequence**: Executes local file writes and verifies their readback success on-disk *before* compiling the final report, ensuring the report accurately reflects the real-world status.
+- **Git Loop Prevention**: Commits and pushes the patches directly to the MR branch, appending `[skip ci]` to the commit message to prevent infinite CI pipelines.
 
-- **Secrets Detection:** Automatic scanning for hardcoded API keys, passwords, and tokens.
-- **Dependency Auditing:** Scanning project dependencies for known vulnerabilities.
-- **Static Analysis (SAST):** Linting and static analysis of source code to find security flaws.
-- **Policy Enforcement:** Verification that repository configurations and merge requests meet security standards.
+### 4. Micro-SaaS Developer Platform (Milestone A)
+A complete, premium web-based developer portal built under the `web/` subdirectory:
+- **Tech Stack**: Express.js server, EJS templates, SQLite (`sqlite3`) local database, and session authentication (`bcryptjs` password hashing).
+- **Tailwind CSS v4 Dark-Mode UI**: A glassmorphic dashboard featuring glowing background assets, dynamic metrics, and settings config to save user API keys.
+- **Simulated Demo Sandbox**: Interactive repository table switcher (`SoftHive-group/Internal-Tools` and `Guardian-Shield/Web-Portal`) allowing users to interact with live-feeling consensus reports out-of-the-box.
+- **Tabbed Onboarding Guides**: Displays copyable YAML setup configurations for GitLab CI/CD and GitHub Actions.
 
-## Getting Started
+---
 
-### Prerequisites
-- Python 3.10+
-- GitLab Personal Access Token (PAT) with API scopes
+## 📂 Project Structure
 
-### Installation
-1. Clone the repository:
+- `guardian.py`: The Python-based ensemble scanner and remediation orchestrator.
+- `vulnerable_service.py`: A test service featuring 5 intentional flaws (AWS keys, SQL injection, Command injection, Pickle load, IDOR) used to test the consensus and remediation engines.
+- `web/`: The Micro-SaaS Express.js platform.
+  - `web/server.js`: Server routing and API logic.
+  - `web/database.js`: SQLite connection, tables, and mock data.
+  - `web/views/`: EJS frontend templates.
+- `.gitlab-ci.yml`: CI configurations to run security jobs on MR events.
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Run the Security Scanner Orchestrator
+To run a manual orchestrator scan locally:
+1. Export environment variables:
    ```bash
-   git clone https://gitlab.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator.git
-   cd guardianagent-autonomous-gitlab-security-orchestrator
+   export GITLAB_TOKEN="your-token"
+   export OPENROUTER_API_KEY="your-key"
    ```
-2. Create and activate a virtual environment:
+2. Run the script:
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   python guardian.py --project-id "your-project-id" --mr-iid <merge-request-iid>
    ```
-3. Install dependencies:
+
+### 2. Run the Micro-SaaS Web Console
+1. Navigate to the web folder:
    ```bash
-   pip install -r requirements.txt
+   cd web
    ```
+2. Run the server:
+   ```bash
+   node server.js
+   ```
+3. Open [http://localhost:3000](http://localhost:3000) in your browser. Register an account and configure your console!

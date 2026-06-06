@@ -1,0 +1,10 @@
+stages:
+  - test
+
+security-scan:
+  stage: test
+  image: python:latest
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - python guardian.py

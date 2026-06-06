@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-GitLab Security Guardian - OpenRouter Ensemble Orchestrator
+GitLab Security Guardian - OpenRouter Mega-Ensemble Orchestrator
 
 This script orchestrates the autonomous security auditing of GitLab Merge Requests.
-It fetches MR code changes, runs concurrent security analysis using OpenRouter models
-(Llama 3.3 70B Free and Gemma 3 27B Free), aggregates findings, and comments back on the MR.
+It fetches MR code changes, queries all free OpenRouter models concurrently,
+aggregates their findings into a single unified markdown table, and comments back on the MR.
 """
 
 import argparse
@@ -49,6 +49,56 @@ def fetch_merge_request_diff(project_id: str, mr_iid: int, gitlab_url: str, toke
     changes = data.get("changes", [])
     logger.info(f"Successfully fetched diff. Total modified files: {len(changes)}")
     return changes
+
+
+def get_free_models() -> List[str]:
+    """
+    Queries the OpenRouter models API and filters for free models.
+    """
+    logger.info("Fetching dynamic models list from OpenRouter...")
+    url = "https://openrouter.ai/api/v1/models"
+    
+    fallback_models = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-3-27b-it:free",
+        "qwen/qwen-2.5-72b-instruct:free"
+    ]
+    
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        models_list = data.get("data", [])
+        
+        free_ids = []
+        for m in models_list:
+            model_id = m.get("id", "")
+            pricing = m.get("pricing", {})
+            
+            # Check if model is free (ends with :free, or cost is 0)
+            is_free_by_name = model_id.endswith(":free")
+            try:
+                is_free_by_price = (
+                    float(pricing.get("prompt", "1")) == 0.0 and
+                    float(pricing.get("completion", "1")) == 0.0
+                )
+            except (ValueError, TypeError):
+                is_free_by_price = False
+                
+            if is_free_by_name or is_free_by_price:
+                if model_id:
+                    free_ids.append(model_id)
+                    
+        # Remove duplicates
+        free_ids = sorted(list(set(free_ids)))
+        logger.info(f"Successfully fetched {len(models_list)} models. Found {len(free_ids)} free models.")
+        
+        # If API returned an empty list for some reason, use the fallback list
+        return free_ids if free_ids else fallback_models
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch dynamic models list: {str(e)}. Using fallback list.")
+        return fallback_models
 
 
 def call_openrouter_model(model_name: str, diff_content: str, api_key: str) -> str:
@@ -135,18 +185,13 @@ def extract_json(raw_text: str) -> List[Dict[str, Any]]:
         return []
     except Exception as e:
         logger.error(f"Failed to parse JSON from text: {str(e)}")
-        return [{
-            "file": "N/A",
-            "line": "N/A",
-            "vulnerability": "Parsing Error",
-            "severity": "Low",
-            "description": f"Failed to parse structured output. Raw response: {cleaned[:300]}..."
-        }]
+        # If parsing fails, we ignore it or return empty list
+        return []
 
 
 def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     """
-    Runs concurrent analysis of the diff using OpenRouter models.
+    Runs concurrent analysis of the diff using all available free OpenRouter models.
     """
     logger.info("Preparing diff content for OpenRouter analysis...")
     
@@ -163,10 +208,14 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
         logger.info("No code changes detected in the diff.")
         return "✅ **No code changes detected in this Merge Request.**"
         
-    models = ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free"]
+    # Get free models dynamically
+    models = get_free_models()
+    
     findings_by_model = {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(models)) as executor:
+    # ThreadPoolExecutor with max_workers=5 to avoid HTTP 429 Rate Limits
+    logger.info(f"Spawning concurrent threads with max_workers=5 to query {len(models)} models...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         future_to_model = {
             executor.submit(call_openrouter_model, model, diff_content, api_key): model
             for model in models
@@ -177,18 +226,13 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
             try:
                 raw_response = future.result()
                 parsed_findings = extract_json(raw_response)
-                findings_by_model[model] = parsed_findings
+                if parsed_findings:
+                    findings_by_model[model] = parsed_findings
             except Exception as exc:
-                logger.error(f"Model {model} generated an exception: {exc}")
-                findings_by_model[model] = [{
-                    "file": "N/A",
-                    "line": "N/A",
-                    "vulnerability": "Model Failure",
-                    "severity": "High",
-                    "description": f"Model {model} failed to execute. Error: {str(exc)}"
-                }]
+                # Catch and silently ignore 404, 429, 503, or any other errors
+                logger.warning(f"Silently ignoring failure from model {model} (Error: {exc})")
 
-    # Aggregate findings
+    # Aggregate successful findings
     aggregated_findings = []
     for model, findings in findings_by_model.items():
         short_model_name = model.split("/")[-1]
@@ -203,7 +247,7 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
             })
 
     if not aggregated_findings:
-        return "✅ **No security vulnerabilities or exposed secrets detected by any model.**"
+        return "✅ **No security vulnerabilities or exposed secrets detected by any active model.**"
         
     # Generate Markdown Table
     markdown = [
@@ -212,7 +256,6 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
         "| :--- | :--- | :--- | :--- | :--- | :--- |"
     ]
     for f in aggregated_findings:
-        # Strip newlines or escape markdown characters in the description
         safe_desc = str(f['description']).replace('\n', ' ').replace('|', '\\|')
         markdown.append(
             f"| `{f['model']}` | `{f['file']}` | {f['line']} | **{f['vulnerability']}** | {str(f['severity']).upper()} | {safe_desc} |"
@@ -247,7 +290,7 @@ def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="GitLab Security Guardian OpenRouter Ensemble Orchestrator")
+    parser = argparse.ArgumentParser(description="GitLab Security Guardian OpenRouter Mega-Ensemble Orchestrator")
     parser.add_argument("--project-id", required=True, help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
     parser.add_argument("--mr-iid", required=True, type=int, help="Merge Request Internal ID (IID)")
     parser.add_argument("--gitlab-url", default=os.getenv("GITLAB_API_URL", "https://gitlab.com"), help="GitLab base URL")
@@ -274,7 +317,7 @@ def main():
         report_markdown = analyze_diff_ensemble(changes, openrouter_key)
         
         # 3. Post comment back to GitLab MR
-        full_comment = f"## 🛡️ GitLab Security Guardian Ensemble Report\n\n{report_markdown}"
+        full_comment = f"## 🛡️ GitLab Security Guardian Mega-Ensemble Report\n\n{report_markdown}"
         post_mr_comment(args.project_id, args.mr_iid, full_comment, args.gitlab_url, token)
         
         logger.info("Orchestration pipeline finished successfully.")

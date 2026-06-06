@@ -4,7 +4,7 @@ GitLab Security Guardian - OpenRouter Ensemble Orchestrator
 
 This script orchestrates the autonomous security auditing of GitLab Merge Requests.
 It fetches MR code changes, runs concurrent security analysis using OpenRouter models
-(DeepSeek R1 Free and Qwen 2.5 72B Free), aggregates findings, and comments back on the MR.
+(Llama 3.3 70B Free and Gemma 3 27B Free), aggregates findings, and comments back on the MR.
 """
 
 import argparse
@@ -163,7 +163,7 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
         logger.info("No code changes detected in the diff.")
         return "✅ **No code changes detected in this Merge Request.**"
         
-    models = ["deepseek/deepseek-r1:free", "qwen/qwen-2.5-72b-instruct:free"]
+    models = ["meta-llama/llama-3.3-70b-instruct:free", "google/gemma-3-27b-it:free"]
     findings_by_model = {}
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(models)) as executor:

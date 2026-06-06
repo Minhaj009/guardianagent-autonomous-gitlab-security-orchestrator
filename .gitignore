@@ -144,3 +144,9 @@ Thumbs.db
 .env.development
 .env.production
 .env.staging
+
+# Node.js and local SQLite files
+web/node_modules/
+web/guardian.db
+web/guardian.db-journal
+

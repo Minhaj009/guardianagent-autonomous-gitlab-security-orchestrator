@@ -1,0 +1,239 @@
+const express = require('express');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const db = require('./database');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Setup Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Configure Express Session
+app.use(session({
+    secret: 'guardian_agent_secret_key_12345',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: false, // Set to true if running over HTTPS
+        maxAge: 1000 * 60 * 60 * 24 // 1 day
+    }
+}));
+
+// Set EJS as templating engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Authentication Middleware
+function checkAuth(req, res, next) {
+    if (req.session && req.session.userId) {
+        return next();
+    }
+    res.redirect('/login');
+}
+
+// Redirect root to dashboard
+app.get('/', (req, res) => {
+    if (req.session.userId) {
+        res.redirect('/dashboard');
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// GET Login / Signup page
+app.get('/login', (req, res) => {
+    if (req.session.userId) {
+        return res.redirect('/dashboard');
+    }
+    res.render('login', { error: null, success: null });
+});
+
+// POST Signup
+app.post('/signup', (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.render('login', { error: 'Please enter all fields.', success: null });
+    }
+
+    // Hash password
+    bcrypt.hash(password, 10, (err, hash) => {
+        if (err) {
+            console.error('Bcrypt error:', err);
+            return res.render('login', { error: 'Signup failed. Please try again.', success: null });
+        }
+
+        db.run(
+            'INSERT INTO users (email, password_hash) VALUES (?, ?)',
+            [email, hash],
+            function (err2) {
+                if (err2) {
+                    if (err2.message.includes('UNIQUE constraint failed')) {
+                        return res.render('login', { error: 'Email already registered.', success: null });
+                    }
+                    return res.render('login', { error: 'Signup failed: ' + err2.message, success: null });
+                }
+                res.render('login', { error: null, success: 'Account created successfully! Please login.' });
+            }
+        );
+    });
+});
+
+// POST Login
+app.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.render('login', { error: 'Please enter all fields.', success: null });
+    }
+
+    db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.render('login', { error: 'Login failed. Database error.', success: null });
+        }
+        if (!user) {
+            return res.render('login', { error: 'Invalid email or password.', success: null });
+        }
+
+        bcrypt.compare(password, user.password_hash, (err2, isMatch) => {
+            if (err2) {
+                console.error('Bcrypt compare error:', err2);
+                return res.render('login', { error: 'Login failed. Comparison error.', success: null });
+            }
+            if (!isMatch) {
+                return res.render('login', { error: 'Invalid email or password.', success: null });
+            }
+
+            // Set session variables
+            req.session.userId = user.id;
+            req.session.userEmail = user.email;
+            res.redirect('/dashboard');
+        });
+    });
+});
+
+// GET Dashboard
+app.get('/dashboard', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const userEmail = req.session.userEmail;
+
+    db.get('SELECT openrouter_key FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+            console.error('DB error fetching user:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        const rawKey = user ? user.openrouter_key : '';
+        // Mask the key if it exists
+        let maskedKey = '';
+        if (rawKey) {
+            maskedKey = rawKey.substring(0, 7) + '****************' + rawKey.substring(rawKey.length - 4);
+        }
+
+        // Fetch user's own scans
+        db.all('SELECT * FROM scans WHERE user_id = ? ORDER BY created_at DESC', [userId], (err2, userScans) => {
+            if (err2) {
+                console.error('DB error fetching scans:', err2);
+                return res.status(500).send('Internal Server Error');
+            }
+
+            // Determine if using demo mode or live mode
+            const isDemoMode = userScans.length === 0;
+
+            if (isDemoMode) {
+                // Fetch default demo scans
+                db.all('SELECT * FROM scans WHERE user_id IS NULL ORDER BY created_at DESC', (err3, demoScans) => {
+                    if (err3) {
+                        console.error('DB error fetching demo scans:', err3);
+                        return res.status(500).send('Internal Server Error');
+                    }
+                    res.render('dashboard', {
+                        userEmail,
+                        userId,
+                        maskedKey,
+                        scans: demoScans,
+                        isDemoMode: true,
+                        activeTab: 'github'
+                    });
+                });
+            } else {
+                res.render('dashboard', {
+                    userEmail,
+                    userId,
+                    maskedKey,
+                    scans: userScans,
+                    isDemoMode: false,
+                    activeTab: 'github'
+                });
+            }
+        });
+    });
+});
+
+// POST Settings Update API Key
+app.post('/settings/update-key', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { openrouter_key } = req.body;
+
+    if (!openrouter_key) {
+        return res.status(400).send('Key cannot be empty.');
+    }
+
+    db.run(
+        'UPDATE users SET openrouter_key = ? WHERE id = ?',
+        [openrouter_key, userId],
+        function (err) {
+            if (err) {
+                console.error('DB error updating key:', err);
+                return res.status(500).send('Failed to save key.');
+            }
+            res.redirect('/dashboard?key_updated=true');
+        }
+    );
+});
+
+// GET API for repository findings (to support live UI switches)
+app.get('/api/scans/:repo', checkAuth, (req, res) => {
+    const repo = req.params.repo;
+    const userId = req.session.userId;
+
+    // Fetch findings for the specified repo
+    // Try user's own scans first. If none, search from global demo scans (user_id IS NULL)
+    db.all('SELECT * FROM scans WHERE user_id = ? AND repo_name = ? ORDER BY line ASC', [userId, repo], (err, rows) => {
+        if (err) {
+            console.error('DB error:', err);
+            return res.status(500).json({ error: 'DB Error' });
+        }
+
+        if (rows.length > 0) {
+            return res.json({ scans: rows, mode: 'live' });
+        }
+
+        // Fallback to demo scans
+        db.all('SELECT * FROM scans WHERE user_id IS NULL AND repo_name = ? ORDER BY line ASC', [repo], (err2, demoRows) => {
+            if (err2) {
+                console.error('DB error:', err2);
+                return res.status(500).json({ error: 'DB Error' });
+            }
+            res.json({ scans: demoRows, mode: 'demo' });
+        });
+    });
+});
+
+// GET Logout
+app.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+        }
+        res.redirect('/login');
+    });
+});
+
+// Start Server
+app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
+});

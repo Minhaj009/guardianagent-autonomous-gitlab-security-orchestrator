@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-GitLab Security Guardian - Main Orchestrator
+GitLab Security Guardian - OpenRouter Mega-Ensemble Orchestrator
 
 This script orchestrates the autonomous security auditing of GitLab Merge Requests.
-It fetches MR code changes, runs security checks (secrets scanning, SAST, etc.),
-and comments findings back on the Merge Request.
+It fetches MR code changes, queries all free OpenRouter models concurrently,
+aggregates their findings into a single unified markdown table, and comments back on the MR.
 """
 
 import argparse
+import concurrent.futures
 import json
 import logging
 import os
 import re
-import urllib.request
-import urllib.error
+import urllib.parse
 from typing import Dict, Any, List
+import requests
 
 # Configure Logging
 logging.basicConfig(
@@ -30,167 +31,236 @@ def fetch_merge_request_diff(project_id: str, mr_iid: int, gitlab_url: str, toke
     Fetches the changes/diff of a target Merge Request using the GitLab API.
     
     API Endpoint: GET /projects/:id/merge_requests/:merge_request_iid/changes
-    
-    Args:
-        project_id: URL-encoded path or numeric ID of the project.
-        mr_iid: The internal ID of the Merge Request.
-        gitlab_url: Base URL of the GitLab instance (e.g., https://gitlab.com).
-        token: Personal, Project, or Pipeline Access Token.
-        
-    Returns:
-        List of change objects containing file paths and diff content.
     """
     logger.info(f"Fetching diff for MR !{mr_iid} in project {project_id}...")
     
-    # URL-encode the project_id if it contains slashes
     safe_project_id = urllib.parse.quote_plus(project_id)
     url = f"{gitlab_url.rstrip('/')}/api/v4/projects/{safe_project_id}/merge_requests/{mr_iid}/changes"
     
-    req = urllib.request.Request(url)
-    req.add_header("PRIVATE-TOKEN", token)
-    req.add_header("Content-Type", "application/json")
-    
-    try:
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            # GitLab MR changes endpoint returns an object with a 'changes' list
-            changes = data.get("changes", [])
-            logger.info(f"Successfully fetched diff. Total modified files: {len(changes)}")
-            return changes
-    except urllib.error.HTTPError as e:
-        logger.error(f"HTTP Error fetching MR diff: {e.code} - {e.read().decode()}")
-        raise
-    except Exception as e:
-        logger.error(f"Failed to fetch MR diff: {str(e)}")
-        raise
-
-
-def analyze_diff_for_vulnerabilities(changes: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Analyzes Merge Request changes for potential security vulnerabilities.
-    
-    This performs scans for:
-    - Hardcoded secrets and credentials (regex-based).
-    - Dangerous function usages (e.g., eval, exec).
-    - Insecure configurations.
-    
-    Args:
-        changes: List of change/diff objects from GitLab API.
-        
-    Returns:
-        A dictionary containing the security findings and severity metrics.
-    """
-    logger.info("Analyzing code changes for potential vulnerabilities...")
-    
-    findings = {
-        "vulnerabilities": [],
-        "summary": {
-            "critical": 0,
-            "high": 0,
-            "medium": 0,
-            "low": 0
-        }
+    headers = {
+        "PRIVATE-TOKEN": token,
+        "Accept": "application/json"
     }
     
-    # Basic patterns for hardcoded secrets
-    secrets_pattern = re.compile(
-        r"(api[_-]?key|secret|password|token|private[_-]?key|passwd)\s*=\s*['\"][a-zA-Z0-9_\-\+]{12,}['\"]",
-        re.IGNORECASE
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    
+    data = response.json()
+    changes = data.get("changes", [])
+    logger.info(f"Successfully fetched diff. Total modified files: {len(changes)}")
+    return changes
+
+
+def get_free_models() -> List[str]:
+    """
+    Queries the OpenRouter models API and filters for free models.
+    """
+    logger.info("Fetching dynamic models list from OpenRouter...")
+    url = "https://openrouter.ai/api/v1/models"
+    
+    fallback_models = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-3-27b-it:free",
+        "qwen/qwen-2.5-72b-instruct:free"
+    ]
+    
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        models_list = data.get("data", [])
+        
+        free_ids = []
+        for m in models_list:
+            model_id = m.get("id", "")
+            pricing = m.get("pricing", {})
+            
+            # Check if model is free (ends with :free, or cost is 0)
+            is_free_by_name = model_id.endswith(":free")
+            try:
+                is_free_by_price = (
+                    float(pricing.get("prompt", "1")) == 0.0 and
+                    float(pricing.get("completion", "1")) == 0.0
+                )
+            except (ValueError, TypeError):
+                is_free_by_price = False
+                
+            if is_free_by_name or is_free_by_price:
+                if model_id:
+                    free_ids.append(model_id)
+                    
+        # Remove duplicates
+        free_ids = sorted(list(set(free_ids)))
+        logger.info(f"Successfully fetched {len(models_list)} models. Found {len(free_ids)} free models.")
+        
+        # If API returned an empty list for some reason, use the fallback list
+        return free_ids if free_ids else fallback_models
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch dynamic models list: {str(e)}. Using fallback list.")
+        return fallback_models
+
+
+def call_openrouter_model(model_name: str, diff_content: str, api_key: str) -> str:
+    """
+    Sends the git diff to a specific OpenRouter model.
+    """
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://gitlab.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator",
+        "X-Title": "GitLab Security Guardian"
+    }
+    
+    system_prompt = (
+        "You are a strict Application Security Engineer. Analyze the provided git diff for security vulnerabilities, "
+        "logical flaws, injection risks, and bad practices.\n"
+        "Respond ONLY with a JSON array containing the list of findings. Do not include any introductory or concluding text, "
+        "warnings, or explanations outside the JSON array itself.\n\n"
+        "Each item in the JSON array must be an object with the following fields:\n"
+        "- \"file\": (string) File path of the finding\n"
+        "- \"line\": (string/number) Line number of the finding\n"
+        "- \"vulnerability\": (string) Type of vulnerability detected\n"
+        "- \"severity\": (string) \"Critical\", \"High\", \"Medium\", or \"Low\"\n"
+        "- \"description\": (string) Clear description of the vulnerability and how to fix it\n\n"
+        "Example Output:\n"
+        "[\n"
+        "  {\n"
+        "    \"file\": \"app.py\",\n"
+        "    \"line\": 4,\n"
+        "    \"vulnerability\": \"Hardcoded Secret\",\n"
+        "    \"severity\": \"High\",\n"
+        "    \"description\": \"Exposed API key detected. Move it to environment variables.\"\n"
+        "  }\n"
+        "]"
     )
     
-    # Basic patterns for dangerous functions in Python
-    dangerous_py_pattern = re.compile(r"\b(eval|exec|subprocess\.shell|os\.system)\b")
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Please review this git diff:\n\n{diff_content}"}
+        ]
+    }
+    
+    logger.info(f"Sending request to model {model_name}...")
+    response = requests.post(url, headers=headers, json=payload, timeout=90)
+    response.raise_for_status()
+    result = response.json()
+    choices = result.get("choices", [])
+    if not choices:
+        raise ValueError(f"No choices returned from OpenRouter for model {model_name}")
+    content = choices[0].get("message", {}).get("content", "")
+    logger.info(f"Successfully received response from model {model_name}.")
+    return content
 
+
+def extract_json(raw_text: str) -> List[Dict[str, Any]]:
+    """
+    Cleans model response (specifically handling DeepSeek-R1 <think> blocks)
+    and parses the JSON array.
+    """
+    # Remove DeepSeek think blocks if present
+    cleaned = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL).strip()
+    
+    # Try to extract content inside code blocks
+    code_block_match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", cleaned, flags=re.DOTALL)
+    if code_block_match:
+        json_str = code_block_match.group(1)
+    else:
+        # Try to find the first [ and last ] to extract the JSON array
+        array_match = re.search(r"(\[.*\])", cleaned, flags=re.DOTALL)
+        if array_match:
+            json_str = array_match.group(1)
+        else:
+            json_str = cleaned
+
+    try:
+        data = json.loads(json_str)
+        if isinstance(data, list):
+            return data
+        elif isinstance(data, dict):
+            return [data]
+        return []
+    except Exception as e:
+        logger.error(f"Failed to parse JSON from text: {str(e)}")
+        # If parsing fails, we ignore it or return empty list
+        return []
+
+
+def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
+    """
+    Runs concurrent analysis of the diff using all available free OpenRouter models.
+    """
+    logger.info("Preparing diff content for OpenRouter analysis...")
+    
+    diff_content_parts = []
     for change in changes:
         new_path = change.get("new_path")
         diff = change.get("diff", "")
-        
-        if not diff:
-            continue
+        if diff:
+            diff_content_parts.append(f"File: {new_path}\nDiff:\n{diff}\n" + "="*80)
             
-        lines = diff.splitlines()
-        for line_num, line in enumerate(lines, start=1):
-            # We only scan added lines (prefixed with '+')
-            if not line.startswith("+") or line.startswith("+++"):
-                continue
-                
-            clean_line = line[1:].strip()
-            
-            # 1. Check for Secrets
-            if secrets_pattern.search(clean_line):
-                finding = {
-                    "file": new_path,
-                    "line": line_num,
-                    "type": "Hardcoded Secret",
-                    "severity": "high",
-                    "description": "Potential hardcoded credentials or API key detected.",
-                    "code_snippet": clean_line
-                }
-                findings["vulnerabilities"].append(finding)
-                findings["summary"]["high"] += 1
-                logger.warning(f"Secret detected in {new_path}:{line_num}")
-                
-            # 2. Check for Dangerous Python functions
-            if new_path.endswith(".py") and dangerous_py_pattern.search(clean_line):
-                finding = {
-                    "file": new_path,
-                    "line": line_num,
-                    "type": "Dangerous Function Call",
-                    "severity": "medium",
-                    "description": "Usage of unsafe function (eval/exec/system) can lead to remote code execution.",
-                    "code_snippet": clean_line
-                }
-                findings["vulnerabilities"].append(finding)
-                findings["summary"]["medium"] += 1
-                logger.warning(f"Dangerous function detected in {new_path}:{line_num}")
-
-    logger.info(f"Analysis complete. Found {len(findings['vulnerabilities'])} issues.")
-    return findings
-
-
-def generate_summary_markdown(findings: Dict[str, Any]) -> str:
-    """
-    Generates a rich markdown report comment from the security findings.
+    diff_content = "\n".join(diff_content_parts)
     
-    Args:
-        findings: The dict of vulnerabilities and summary counts.
+    if not diff_content.strip():
+        logger.info("No code changes detected in the diff.")
+        return "✅ **No code changes detected in this Merge Request.**"
         
-    Returns:
-        Markdown string ready for posting to GitLab MR.
-    """
-    summary = findings["summary"]
-    total_issues = sum(summary.values())
+    # Get free models dynamically
+    models = get_free_models()
     
-    if total_issues == 0:
-        return (
-            "## 🛡️ GitLab Security Guardian Report\n\n"
-            "✅ **No security vulnerabilities or exposed secrets detected in this Merge Request.**\n\n"
-            "Keep up the secure coding practices! 🚀"
-        )
+    findings_by_model = {}
+
+    # ThreadPoolExecutor with max_workers=5 to avoid HTTP 429 Rate Limits
+    logger.info(f"Spawning concurrent threads with max_workers=5 to query {len(models)} models...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_model = {
+            executor.submit(call_openrouter_model, model, diff_content, api_key): model
+            for model in models
+        }
         
+        for future in concurrent.futures.as_completed(future_to_model):
+            model = future_to_model[future]
+            try:
+                raw_response = future.result()
+                parsed_findings = extract_json(raw_response)
+                if parsed_findings:
+                    findings_by_model[model] = parsed_findings
+            except Exception as exc:
+                # Catch and silently ignore 404, 429, 503, or any other errors
+                logger.warning(f"Silently ignoring failure from model {model} (Error: {exc})")
+
+    # Aggregate successful findings
+    aggregated_findings = []
+    for model, findings in findings_by_model.items():
+        short_model_name = model.split("/")[-1]
+        for finding in findings:
+            aggregated_findings.append({
+                "model": short_model_name,
+                "file": finding.get("file", "N/A"),
+                "line": finding.get("line", "N/A"),
+                "vulnerability": finding.get("vulnerability", "N/A"),
+                "severity": finding.get("severity", "N/A"),
+                "description": finding.get("description", "N/A")
+            })
+
+    if not aggregated_findings:
+        return "✅ **No security vulnerabilities or exposed secrets detected by any active model.**"
+        
+    # Generate Markdown Table
     markdown = [
-        "## 🛡️ GitLab Security Guardian Report",
-        f"⚠️ **{total_issues} potential security issues identified** in this Merge Request.",
-        "",
-        "### 📊 Severity Summary",
-        f"- 🔴 **Critical:** {summary['critical']}",
-        f"- 🟠 **High:** {summary['high']}",
-        f"- 🟡 **Medium:** {summary['medium']}",
-        f"- 🔵 **Low:** {summary['low']}",
-        "",
-        "### 🔍 Detailed Findings",
-        "| File | Line | Type | Severity | Description |",
-        "| :--- | :--- | :--- | :--- | :--- |"
+        "### 📊 Security Findings Summary",
+        "| Model | File | Line | Vulnerability Type | Severity | Description / Recommendation |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |"
     ]
-    
-    for v in findings["vulnerabilities"]:
-        # Escape markdown table characters
-        safe_desc = v['description'].replace('|', '\\|')
+    for f in aggregated_findings:
+        safe_desc = str(f['description']).replace('\n', ' ').replace('|', '\\|')
         markdown.append(
-            f"| `{v['file']}` | {v['line']} | **{v['type']}** | {v['severity'].upper()} | {safe_desc} |"
+            f"| `{f['model']}` | `{f['file']}` | {f['line']} | **{f['vulnerability']}** | {str(f['severity']).upper()} | {safe_desc} |"
         )
         
-    markdown.append("\n*Please review the findings above and fix any security gaps before merging.*")
     return "\n".join(markdown)
 
 
@@ -199,67 +269,55 @@ def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str,
     Posts a summary comment back to the Merge Request with findings.
     
     API Endpoint: POST /projects/:id/merge_requests/:merge_request_iid/notes
-    
-    Args:
-        project_id: URL-encoded path or numeric ID of the project.
-        mr_iid: The internal ID of the Merge Request.
-        comment: Markdown comment body.
-        gitlab_url: Base URL of the GitLab instance.
-        token: Personal, Project, or Pipeline Access Token.
-        
-    Returns:
-        The created comment object details.
     """
     logger.info(f"Posting security summary comment to MR !{mr_iid}...")
     
     safe_project_id = urllib.parse.quote_plus(project_id)
     url = f"{gitlab_url.rstrip('/')}/api/v4/projects/{safe_project_id}/merge_requests/{mr_iid}/notes"
     
-    payload = json.dumps({"body": comment}).encode("utf-8")
+    headers = {
+        "PRIVATE-TOKEN": token,
+        "Content-Type": "application/json"
+    }
     
-    req = urllib.request.Request(url, data=payload)
-    req.add_header("PRIVATE-TOKEN", token)
-    req.add_header("Content-Type", "application/json")
+    payload = {"body": comment}
     
-    try:
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            logger.info("Successfully posted comment to Merge Request.")
-            return data
-    except urllib.error.HTTPError as e:
-        logger.error(f"HTTP Error posting comment: {e.code} - {e.read().decode()}")
-        raise
-    except Exception as e:
-        logger.error(f"Failed to post MR comment: {str(e)}")
-        raise
+    response = requests.post(url, headers=headers, json=payload)
+    response.raise_for_status()
+    
+    logger.info("Successfully posted comment to Merge Request.")
+    return response.json()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="GitLab Security Guardian MR Orchestrator")
+    parser = argparse.ArgumentParser(description="GitLab Security Guardian OpenRouter Mega-Ensemble Orchestrator")
     parser.add_argument("--project-id", required=True, help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
     parser.add_argument("--mr-iid", required=True, type=int, help="Merge Request Internal ID (IID)")
     parser.add_argument("--gitlab-url", default=os.getenv("GITLAB_API_URL", "https://gitlab.com"), help="GitLab base URL")
-    parser.add_argument("--token", default=os.getenv("GITLAB_TOKEN"), help="GitLab Private Access Token")
     
     args = parser.parse_args()
     
-    token = args.token or os.getenv("GITLAB_PERSONAL_ACCESS_TOKEN")
+    token = os.environ.get('GITLAB_TOKEN')
+    openrouter_key = os.environ.get('OPENROUTER_API_KEY')
+    
     if not token:
-        logger.error("GitLab access token not provided. Use --token or set GITLAB_TOKEN/GITLAB_PERSONAL_ACCESS_TOKEN env variables.")
+        logger.error("Environment variable 'GITLAB_TOKEN' is missing.")
+        exit(1)
+        
+    if not openrouter_key:
+        logger.error("Environment variable 'OPENROUTER_API_KEY' is missing.")
         exit(1)
         
     try:
         # 1. Fetch changes
         changes = fetch_merge_request_diff(args.project_id, args.mr_iid, args.gitlab_url, token)
         
-        # 2. Analyze
-        findings = analyze_diff_for_vulnerabilities(changes)
+        # 2. Analyze using OpenRouter Ensemble
+        report_markdown = analyze_diff_ensemble(changes, openrouter_key)
         
-        # 3. Generate summary report
-        report_markdown = generate_summary_markdown(findings)
-        
-        # 4. Post comment back to GitLab MR
-        post_mr_comment(args.project_id, args.mr_iid, report_markdown, args.gitlab_url, token)
+        # 3. Post comment back to GitLab MR
+        full_comment = f"## 🛡️ GitLab Security Guardian Mega-Ensemble Report\n\n{report_markdown}"
+        post_mr_comment(args.project_id, args.mr_iid, full_comment, args.gitlab_url, token)
         
         logger.info("Orchestration pipeline finished successfully.")
         

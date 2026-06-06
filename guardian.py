@@ -5,7 +5,7 @@ GitLab Security Guardian - OpenRouter Mega-Ensemble Orchestrator with Auto-Remed
 This script orchestrates the autonomous security auditing of GitLab Merge Requests.
 It fetches MR code changes, queries all free OpenRouter models concurrently,
 calculates a consensus score for each finding, synthesizes their descriptions,
-automatically generates and applies security patches for findings >= 50% consensus,
+automatically generates and applies security patches for findings >= 30% consensus,
 and comments the consolidated report back on the Merge Request.
 """
 
@@ -253,7 +253,7 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], api_key
 
 def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
     """
-    Loops through findings with Consensus Score >= 50% and calls Llama to secure the code.
+    Loops through findings with Consensus Score >= 30% and calls Llama to secure the code.
     Checks if ORIGINAL block matches target file content.
     Returns:
         (remediated_results, pending_remediations)
@@ -266,11 +266,11 @@ def generate_remediations(consolidated_findings: List[Dict[str, Any]]) -> tuple:
     remediated_results = []
     pending_remediations = []
     
-    # Filter findings with score >= 50%
-    high_confidence_findings = [g for g in consolidated_findings if g.get("score", 0) >= 50.0]
+    # Filter findings with score >= 30%
+    high_confidence_findings = [g for g in consolidated_findings if g.get("score", 0) >= 30.0]
     
     if not high_confidence_findings:
-        logger.info("No high-confidence findings (Consensus Score >= 50%) to auto-remediate.")
+        logger.info("No high-confidence findings (Consensus Score >= 30%) to auto-remediate.")
         return [], []
         
     logger.info(f"Attempting to auto-remediate {len(high_confidence_findings)} findings...")

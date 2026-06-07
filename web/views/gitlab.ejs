@@ -64,8 +64,8 @@
                 <div>
                     <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">1. Obtain Access Tokens</h2>
                     <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium">
-                        <li>Go to your GitLab User Settings, select Access Tokens, and generate a new token.</li>
-                        <li>Check the `api`, `read_repository`, and `write_repository` scopes to allow the orchestrator to read commits and post comments.</li>
+                        <li>Go to your GitLab User Settings, select **Access Tokens** (or **Personal Access Tokens**), and generate a new token. Do not use restricted Deploy Tokens as they do not support API writing permissions.</li>
+                        <li>Give the token a name and check the following scopes: **`api`**, **`read_repository`**, and **`write_repository`** to allow the orchestrator to read commits, apply patches, and post comments.</li>
                         <li>Copy the generated token immediately. It will not be shown again.</li>
                     </ol>
                 </div>

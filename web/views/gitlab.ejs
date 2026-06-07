@@ -65,7 +65,7 @@
                     <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">1. Obtain Access Tokens</h2>
                     <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium">
                         <li>Go to your GitLab User Settings, select Access Tokens, and generate a new token.</li>
-                        <li>Enable the `api`, `read_repository`, and `write_repository` scopes.</li>
+                        <li>Check the `api`, `read_repository`, and `write_repository` scopes to allow the orchestrator to read commits and post comments.</li>
                         <li>Copy the generated token immediately. It will not be shown again.</li>
                     </ol>
                 </div>
@@ -75,9 +75,9 @@
                     <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">2. Add CI/CD Variables to GitLab</h2>
                     <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium" start="4">
                         <li>In your GitLab project, go to Settings, then select CI/CD, and expand Variables.</li>
-                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code> and paste your OpenRouter key.</li>
-                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GITLAB_TOKEN</code> and paste your GitLab Access Token.</li>
-                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code> and paste your unique ID shown below:</li>
+                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code>, paste your OpenRouter key, and configure: <strong class="text-[#4F6D7A]">Masked: Enabled</strong> and <strong class="text-[#DD6E42]">Protect variable: Disabled</strong> (so it runs on Merge Request branches).</li>
+                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GITLAB_TOKEN</code>, paste your GitLab Access Token, and configure: <strong class="text-[#4F6D7A]">Masked: Enabled</strong> and <strong class="text-[#DD6E42]">Protect variable: Disabled</strong>.</li>
+                        <li>Create a Variable named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code>, paste your unique ID shown below, and configure: <strong class="text-[#4F6D7A]">Masked: Disabled</strong> (does not meet masking rules) and <strong class="text-[#DD6E42]">Protect variable: Disabled</strong>:</li>
                     </ol>
                     <div class="mt-3 flex items-center justify-between border border-[#4F6D7A] bg-[#C0D6DF]/10 p-3 font-mono text-xs">
                         <span>GUARDIAN_USER_ID: <strong class="text-[#DD6E42]"><%= guardianUserId %></strong></span>

@@ -64,9 +64,9 @@
                 <div>
                     <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">1. Obtain Access Tokens</h2>
                     <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium">
-                        <li>Go to your GitHub Settings, select Developer Settings, and click Personal Access Tokens.</li>
-                        <li>Generate a new token (Classic) and check the 'repo' scope.</li>
-                        <li>Copy the token and store it securely. Do not share it.</li>
+                        <li>Go to your GitHub Settings, select Developer Settings, and click Personal Access Tokens (Classic).</li>
+                        <li>Generate a new token checking the `repo` scope to grant write and pull request access.</li>
+                        <li>Copy the token immediately. Store it securely and do not share it.</li>
                     </ol>
                 </div>
 
@@ -75,9 +75,9 @@
                     <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">2. Add Secrets to GitHub</h2>
                     <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium" start="4">
                         <li>In your GitHub repository, click Settings, then select Secrets and Variables, then Actions.</li>
-                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code> and paste your OpenRouter key.</li>
-                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GIT_TOKEN</code> and paste your GitHub Personal Access Token.</li>
-                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code> and paste your unique ID shown below:</li>
+                        <li>Create a Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code> and paste your OpenRouter key.</li>
+                        <li>Create a Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GIT_TOKEN</code> and paste your GitHub Personal Access Token.</li>
+                        <li>Create a Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code> and paste your unique ID shown below:</li>
                     </ol>
                     <div class="mt-3 flex items-center justify-between border border-[#4F6D7A] bg-[#C0D6DF]/10 p-3 font-mono text-xs">
                         <span>GUARDIAN_USER_ID: <strong class="text-[#DD6E42]"><%= guardianUserId %></strong></span>

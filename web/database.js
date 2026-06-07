@@ -25,7 +25,7 @@ db.serialize(() => {
     `);
 
     // Migration step for existing databases
-    db.run("ALTER TABLE users ADD COLUMN guardian_user_id TEXT UNIQUE", (err) => {
+    db.run("ALTER TABLE users ADD COLUMN guardian_user_id TEXT", (err) => {
         // Safe to ignore if column already exists
     });
 

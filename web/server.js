@@ -36,6 +36,24 @@ function checkAuth(req, res, next) {
     res.redirect('/login');
 }
 
+// Helper to guarantee every logged-in user has a guardian_user_id
+function getOrGenerateGuardianUserId(user, callback) {
+    if (!user) {
+        return callback(null, 'usr_demo');
+    }
+    if (user.guardian_user_id) {
+        return callback(null, user.guardian_user_id);
+    }
+    const newId = 'usr_' + crypto.randomBytes(6).toString('hex');
+    db.run('UPDATE users SET guardian_user_id = ? WHERE id = ?', [newId, user.id], (err) => {
+        if (err) {
+            console.error('Failed to update guardian_user_id:', err);
+        }
+        user.guardian_user_id = newId;
+        callback(null, newId);
+    });
+}
+
 // Redirect root to dashboard
 app.get('/', (req, res) => {
     if (req.session.userId) {
@@ -129,53 +147,54 @@ app.get('/dashboard', checkAuth, (req, res) => {
             return res.status(500).send('Internal Server Error');
         }
 
-        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
-        const rawKey = user ? user.openrouter_key : '';
-        let maskedKey = '';
-        if (rawKey) {
-            maskedKey = rawKey.substring(0, 7) + '****************' + rawKey.substring(rawKey.length - 4);
-        }
-
-        // Fetch user's own scans
-        db.all('SELECT * FROM scans WHERE user_id = ? ORDER BY created_at DESC', [userId], (err2, userScans) => {
-            if (err2) {
-                console.error('DB error fetching scans:', err2);
-                return res.status(500).send('Internal Server Error');
+        getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
+            const rawKey = user ? user.openrouter_key : '';
+            let maskedKey = '';
+            if (rawKey) {
+                maskedKey = rawKey.substring(0, 7) + '****************' + rawKey.substring(rawKey.length - 4);
             }
 
-            // Determine if using demo mode or live mode
-            const isDemoMode = userScans.length === 0;
+            // Fetch user's own scans
+            db.all('SELECT * FROM scans WHERE user_id = ? ORDER BY created_at DESC', [userId], (err2, userScans) => {
+                if (err2) {
+                    console.error('DB error fetching scans:', err2);
+                    return res.status(500).send('Internal Server Error');
+                }
 
-            if (isDemoMode) {
-                // Fetch default demo scans
-                db.all('SELECT * FROM scans WHERE user_id IS NULL ORDER BY created_at DESC', (err3, demoScans) => {
-                    if (err3) {
-                        console.error('DB error fetching demo scans:', err3);
-                        return res.status(500).send('Internal Server Error');
-                    }
+                // Determine if using demo mode or live mode
+                const isDemoMode = userScans.length === 0;
+
+                if (isDemoMode) {
+                    // Fetch default demo scans
+                    db.all('SELECT * FROM scans WHERE user_id IS NULL ORDER BY created_at DESC', (err3, demoScans) => {
+                        if (err3) {
+                            console.error('DB error fetching demo scans:', err3);
+                            return res.status(500).send('Internal Server Error');
+                        }
+                        res.render('dashboard', {
+                            userEmail,
+                            userId,
+                            guardianUserId,
+                            maskedKey,
+                            scans: demoScans,
+                            isDemoMode: true,
+                            activeTab: 'dashboard',
+                            currentPath: '/dashboard'
+                        });
+                    });
+                } else {
                     res.render('dashboard', {
                         userEmail,
                         userId,
                         guardianUserId,
                         maskedKey,
-                        scans: demoScans,
-                        isDemoMode: true,
+                        scans: userScans,
+                        isDemoMode: false,
                         activeTab: 'dashboard',
                         currentPath: '/dashboard'
                     });
-                });
-            } else {
-                res.render('dashboard', {
-                    userEmail,
-                    userId,
-                    guardianUserId,
-                    maskedKey,
-                    scans: userScans,
-                    isDemoMode: false,
-                    activeTab: 'dashboard',
-                    currentPath: '/dashboard'
-                });
-            }
+                }
+            });
         });
     });
 });
@@ -191,12 +210,13 @@ app.get('/setup/github', checkAuth, (req, res) => {
             return res.status(500).send('Internal Server Error');
         }
 
-        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
-        res.render('github', {
-            userEmail,
-            guardianUserId,
-            activeTab: 'github',
-            currentPath: '/setup/github'
+        getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
+            res.render('github', {
+                userEmail,
+                guardianUserId,
+                activeTab: 'github',
+                currentPath: '/setup/github'
+            });
         });
     });
 });
@@ -212,12 +232,13 @@ app.get('/setup/gitlab', checkAuth, (req, res) => {
             return res.status(500).send('Internal Server Error');
         }
 
-        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
-        res.render('gitlab', {
-            userEmail,
-            guardianUserId,
-            activeTab: 'gitlab',
-            currentPath: '/setup/gitlab'
+        getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
+            res.render('gitlab', {
+                userEmail,
+                guardianUserId,
+                activeTab: 'gitlab',
+                currentPath: '/setup/gitlab'
+            });
         });
     });
 });

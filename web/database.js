@@ -19,9 +19,15 @@ db.serialize(() => {
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             openrouter_key TEXT,
+            guardian_user_id TEXT UNIQUE,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    // Migration step for existing databases
+    db.run("ALTER TABLE users ADD COLUMN guardian_user_id TEXT UNIQUE", (err) => {
+        // Safe to ignore if column already exists
+    });
 
     // 2. Create scans table for storing findings
     db.run(`

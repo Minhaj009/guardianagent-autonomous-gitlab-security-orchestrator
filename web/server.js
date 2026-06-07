@@ -160,7 +160,8 @@ app.get('/dashboard', checkAuth, (req, res) => {
                         maskedKey,
                         scans: demoScans,
                         isDemoMode: true,
-                        activeTab: 'dashboard'
+                        activeTab: 'dashboard',
+                        currentPath: '/dashboard'
                     });
                 });
             } else {
@@ -171,7 +172,8 @@ app.get('/dashboard', checkAuth, (req, res) => {
                     maskedKey,
                     scans: userScans,
                     isDemoMode: false,
-                    activeTab: 'dashboard'
+                    activeTab: 'dashboard',
+                    currentPath: '/dashboard'
                 });
             }
         });
@@ -193,7 +195,8 @@ app.get('/setup/github', checkAuth, (req, res) => {
         res.render('github', {
             userEmail,
             guardianUserId,
-            activeTab: 'github'
+            activeTab: 'github',
+            currentPath: '/setup/github'
         });
     });
 });
@@ -213,7 +216,8 @@ app.get('/setup/gitlab', checkAuth, (req, res) => {
         res.render('gitlab', {
             userEmail,
             guardianUserId,
-            activeTab: 'gitlab'
+            activeTab: 'gitlab',
+            currentPath: '/setup/gitlab'
         });
     });
 });

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuardianAgent - GitHub Integration Setup</title>
+    <!-- Tailwind CSS v4 via CDN -->
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #EAEAEA;
+        }
+    </style>
+</head>
+<body class="bg-[#EAEAEA] text-slate-800 min-h-screen pb-12">
+
+    <!-- Sticky Top Navigation -->
+    <nav class="sticky top-0 z-40 bg-[#EAEAEA] border-b-2 border-[#4F6D7A] px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-white border border-[#4F6D7A]">
+                <svg class="w-6 h-6 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+            </div>
+            <div>
+                <span class="font-bold text-lg text-[#4F6D7A] tracking-tight">GuardianAgent</span>
+                <span class="text-[10px] border border-[#4F6D7A] text-[#4F6D7A] px-1.5 py-0.5 ml-2 font-mono uppercase font-bold">v1.0.0</span>
+            </div>
+        </div>
+
+        <!-- Center links -->
+        <div class="hidden md:flex items-center gap-6">
+            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'dashboard' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                Review Dashboard
+            </a>
+            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'github' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                GitHub Setup
+            </a>
+            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'gitlab' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                GitLab Setup
+            </a>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px] text-[#4F6D7A]/60 uppercase tracking-widest font-semibold">User</p>
+                <p class="text-xs font-bold text-[#4F6D7A]"><%= userEmail %></p>
+            </div>
+            <a href="/logout" class="py-2 px-3 border border-[#4F6D7A] text-xs font-bold uppercase tracking-wider text-[#4F6D7A] hover:bg-[#C0D6DF]/30 transition-colors" title="Logout">
+                Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 py-12">
+        <div class="border-2 border-[#4F6D7A] bg-white p-8 mb-8">
+            <h1 class="text-2xl font-bold text-[#4F6D7A] uppercase tracking-tight mb-2">GitHub Actions Setup Guide</h1>
+            <p class="text-sm text-slate-600 mb-6 font-medium">Follow these steps to connect your GitHub repositories to GuardianAgent.</p>
+
+            <div class="space-y-6">
+                <!-- Section 1 -->
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">1. Obtain Access Tokens</h2>
+                    <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium">
+                        <li>Go to your GitHub Settings, select Developer Settings, and click Personal Access Tokens.</li>
+                        <li>Generate a new token (Classic) and check the 'repo' scope.</li>
+                        <li>Copy the token and store it securely. Do not share it.</li>
+                    </ol>
+                </div>
+
+                <!-- Section 2 -->
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">2. Add Secrets to GitHub</h2>
+                    <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium" start="4">
+                        <li>In your GitHub repository, click Settings, then select Secrets and Variables, then Actions.</li>
+                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code> and paste your OpenRouter key.</li>
+                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GIT_TOKEN</code> and paste your GitHub Personal Access Token.</li>
+                        <li>Create a Repository Secret named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code> and paste your unique ID shown below:</li>
+                    </ol>
+                    <div class="mt-3 flex items-center justify-between border border-[#4F6D7A] bg-[#C0D6DF]/10 p-3 font-mono text-xs">
+                        <span>GUARDIAN_USER_ID: <strong class="text-[#DD6E42]"><%= guardianUserId %></strong></span>
+                        <button onclick="navigator.clipboard.writeText('<%= guardianUserId %>'); alert('Copied User ID!');" 
+                                class="px-3 py-1 bg-[#4F6D7A] text-white hover:bg-[#4F6D7A]/90 text-[10px] font-bold uppercase tracking-wider cursor-pointer">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 3 -->
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">3. Create Workflow File</h2>
+                    <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 font-medium" start="8">
+                        <li>In your local project, create a folder structure named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">.github/workflows</code>.</li>
+                        <li>Create a new file inside named <code class="bg-[#C0D6DF]/30 px-1 font-mono text-[#4F6D7A]">guardian.yml</code>.</li>
+                        <li>Copy the entire YAML snippet below, paste it into the file, commit, and push it to GitHub.</li>
+                    </ol>
+
+                    <div class="mt-4 relative border border-[#4F6D7A] bg-[#FFFFFF]">
+                        <div class="flex items-center justify-between border-b border-[#4F6D7A] bg-[#C0D6DF]/10 px-4 py-2 text-xs font-bold text-[#4F6D7A]">
+                            <span>.github/workflows/guardian.yml</span>
+                            <button onclick="copySnippet()" 
+                                    class="px-3 py-1 bg-[#DD6E42] hover:bg-[#DD6E42]/90 text-white text-[10px] uppercase tracking-wider cursor-pointer">
+                                Copy Snippet
+                            </button>
+                        </div>
+                        <pre id="yamlSnippet" class="p-4 font-mono text-[11px] leading-relaxed text-slate-700 overflow-x-auto max-h-[350px]">name: Security Guardian Scan
+on:
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  guardian_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      - name: Run Guardian
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GUARDIAN_USER_ID: "<%= guardianUserId %>"
+        run: |
+          curl -sS https://raw.githubusercontent.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator/main/guardian.py -o guardian.py
+          python guardian.py --project-id ${{ github.repository }} --mr-iid ${{ github.event.pull_request.number }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function copySnippet() {
+            const code = document.getElementById('yamlSnippet').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('YAML snippet copied to clipboard!');
+            }).catch(err => {
+                console.error('Copy failed: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

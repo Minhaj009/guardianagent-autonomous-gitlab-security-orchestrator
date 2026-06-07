@@ -10,45 +10,47 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #020617; /* slate-950 */
+            background-color: #EAEAEA;
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen relative overflow-x-hidden">
-    <!-- Background Blurs -->
-    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full filter blur-3xl opacity-50 pointer-events-none"></div>
-    <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/5 rounded-full filter blur-3xl opacity-50 pointer-events-none"></div>
+<body class="bg-[#EAEAEA] text-slate-800 min-h-screen pb-12">
 
-    <!-- Top Navigation -->
-    <nav class="sticky top-0 z-40 backdrop-blur-md bg-slate-950/70 border-b border-slate-900 px-6 py-4 flex items-center justify-between">
+    <!-- Sticky Top Navigation -->
+    <nav class="sticky top-0 z-40 bg-[#EAEAEA] border-b-2 border-[#4F6D7A] px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="p-2 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
-                <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div class="p-2 bg-white border border-[#4F6D7A]">
+                <svg class="w-6 h-6 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
             </div>
             <div>
-                <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-slate-100 to-indigo-300 bg-clip-text text-transparent">GuardianAgent</span>
-                <span class="text-xs bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md ml-2 font-mono">v1.0.0</span>
+                <span class="font-bold text-lg text-[#4F6D7A] tracking-tight">GuardianAgent</span>
+                <span class="text-[10px] border border-[#4F6D7A] text-[#4F6D7A] px-1.5 py-0.5 ml-2 font-mono uppercase font-bold">v1.0.0</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-6">
-            <div class="hidden sm:flex items-center gap-2">
-                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span class="text-xs text-slate-400 font-medium">Orchestrator Node Online</span>
+        <!-- Center links -->
+        <div class="hidden md:flex items-center gap-6">
+            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'dashboard' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                Review Dashboard
+            </a>
+            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'github' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                GitHub Setup
+            </a>
+            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'gitlab' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+                GitLab Setup
+            </a>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px] text-[#4F6D7A]/60 uppercase tracking-widest font-semibold">User</p>
+                <p class="text-xs font-bold text-[#4F6D7A]"><%= userEmail %></p>
             </div>
-            <div class="flex items-center gap-3 pl-4 border-l border-slate-800">
-                <div class="text-right">
-                    <p class="text-xs text-slate-500">Logged in as</p>
-                    <p class="text-sm font-semibold text-slate-300"><%= userEmail %></p>
-                </div>
-                <a href="/logout" class="p-2.5 bg-slate-900 hover:bg-rose-950/20 border border-slate-800 hover:border-rose-900/30 text-slate-400 hover:text-rose-400 rounded-xl transition-all duration-300" title="Logout">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                </a>
-            </div>
+            <a href="/logout" class="py-2 px-3 border border-[#4F6D7A] text-xs font-bold uppercase tracking-wider text-[#4F6D7A] hover:bg-[#C0D6DF]/30 transition-colors" title="Logout">
+                Logout
+            </a>
         </div>
     </nav>
 
@@ -56,21 +58,15 @@
         <!-- Dashboard Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold tracking-tight text-white">Developer Console</h1>
-                <p class="text-slate-400 text-sm mt-1">Configure integrations, monitor consensus audits, and manage automated remediations.</p>
+                <h1 class="text-2xl font-bold uppercase tracking-tight text-[#4F6D7A]">Security Review Console</h1>
+                <p class="text-slate-600 text-xs mt-1 font-medium">Verify consensus reviews and patches generated by autonomous agent ensembles.</p>
             </div>
             <% if (isDemoMode) { %>
-                <div class="inline-flex items-center gap-2.5 px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl text-xs font-semibold">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span>Simulated Demo Sandbox Active</span>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8DAB2]/30 border border-[#4F6D7A] text-[#4F6D7A] text-[10px] font-bold uppercase tracking-wider">
+                    <span>Demo Sandbox Active</span>
                 </div>
             <% } else { %>
-                <div class="inline-flex items-center gap-2.5 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl text-xs font-semibold">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#C0D6DF]/30 border border-[#4F6D7A] text-[#4F6D7A] text-[10px] font-bold uppercase tracking-wider">
                     <span>Live Audit Mode Connected</span>
                 </div>
             <% } %>
@@ -78,357 +74,176 @@
 
         <!-- Metric Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Card 1 -->
-            <div class="backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-6 shadow-xl relative group hover:border-slate-700 transition-all duration-300">
-                <div class="absolute top-6 right-6 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                </div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active LLM Models</p>
-                <h3 class="text-3xl font-extrabold text-white mt-2 group-hover:text-indigo-400 transition-colors">15</h3>
-                <p class="text-xs text-indigo-400 mt-2 font-medium">Dynamic free models connected</p>
+            <!-- Metric Card 1 -->
+            <div class="bg-white border-2 border-[#4F6D7A] p-6 relative">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active LLM Ensemble</p>
+                <h3 class="text-3xl font-bold text-[#4F6D7A] mt-2">15</h3>
+                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Consensus models loaded</p>
             </div>
 
-            <!-- Card 2 -->
-            <div class="backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-6 shadow-xl relative group hover:border-slate-700 transition-all duration-300">
-                <div class="absolute top-6 right-6 p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
-                </div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vulnerabilities Found</p>
-                <h3 id="metricVulns" class="text-3xl font-extrabold text-white mt-2 group-hover:text-rose-400 transition-colors">7</h3>
-                <p class="text-xs text-rose-400 mt-2 font-medium">Flagged across target scans</p>
+            <!-- Metric Card 2 -->
+            <div class="bg-white border-2 border-[#4F6D7A] p-6 relative">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Vulnerabilities Found</p>
+                <h3 id="metricVulns" class="text-3xl font-bold text-[#4F6D7A] mt-2">0</h3>
+                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Flagged from target repositories</p>
             </div>
 
-            <!-- Card 3 -->
-            <div class="backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-6 shadow-xl relative group hover:border-slate-700 transition-all duration-300">
-                <div class="absolute top-6 right-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                    </svg>
-                </div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Patches Pushed</p>
-                <h3 id="metricPatches" class="text-3xl font-extrabold text-white mt-2 group-hover:text-emerald-400 transition-colors">6</h3>
-                <p class="text-xs text-emerald-400 mt-2 font-medium">Applied securely via pipeline</p>
+            <!-- Metric Card 3 -->
+            <div class="bg-white border-2 border-[#4F6D7A] p-6 relative">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Patches Pushed</p>
+                <h3 id="metricPatches" class="text-3xl font-bold text-[#4F6D7A] mt-2">0</h3>
+                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Applied directly back to repository</p>
             </div>
 
-            <!-- Card 4 -->
-            <div class="backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-6 shadow-xl relative group hover:border-slate-700 transition-all duration-300">
-                <div class="absolute top-6 right-6 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-cyan-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M8 7H6a2 2 0 00-2 2v4a2 2 0 002 2h2m10-8h2a2 2 0 012 2v4a2 2 0 01-2 2h-2m-2-12v12a2 2 0 01-2 2h-2"></path>
-                    </svg>
-                </div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Branches Created</p>
-                <h3 class="text-3xl font-extrabold text-white mt-2 group-hover:text-cyan-400 transition-colors">5</h3>
-                <p class="text-xs text-cyan-400 mt-2 font-medium">Isolated remediation runs</p>
+            <!-- Metric Card 4 -->
+            <div class="bg-white border-2 border-[#4F6D7A] p-6 relative">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Branches Created</p>
+                <h3 class="text-3xl font-bold text-[#4F6D7A] mt-2">5</h3>
+                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Remediation paths tested</p>
             </div>
         </div>
 
-        <!-- Two column configuration section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Column 1: API Configuration (Settings) -->
-            <div class="lg:col-span-1 backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-8 shadow-xl flex flex-col justify-between">
+        <!-- Security Activity Feed Section -->
+        <div class="bg-white border-2 border-[#4F6D7A] p-8 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#4F6D7A]/20 pb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-white mb-2">API Configuration</h2>
-                    <p class="text-xs text-slate-400 leading-relaxed mb-6">In order to run security audits using LLM models, save your personal OpenRouter API Key. This key is stored securely and injected dynamically during runtime so you consume your own credits.</p>
-                    
-                    <form action="/settings/update-key" method="POST" class="space-y-4">
-                        <div>
-                            <label for="openrouter_key" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">OpenRouter API Key</label>
-                            <input type="password" name="openrouter_key" id="openrouter_key" placeholder="sk-or-v1-..." value="<%= maskedKey ? '••••••••••••' : '' %>"
-                                   class="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-2xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 transition-colors duration-300">
-                        </div>
-                        <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-2xl transition-all duration-300 shadow-md shadow-indigo-600/10 cursor-pointer">
-                            <%= maskedKey ? 'Update API Key' : 'Save API Key' %>
-                        </button>
-                    </form>
-                </div>
-                <div class="mt-8 pt-6 border-t border-slate-900">
-                    <p class="text-xs text-slate-500 leading-relaxed">Don't have a key? Acquire a free key or purchase OpenRouter credits at <a href="https://openrouter.ai" target="_blank" class="text-indigo-400 hover:underline">openrouter.ai</a>.</p>
-                </div>
-            </div>
-
-            <!-- Column 2: Onboarding & Installation Guide -->
-            <div class="lg:col-span-2 backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-8 shadow-xl">
-                <h2 class="text-xl font-bold text-white mb-2">Integration & Setup Guide</h2>
-                <p class="text-xs text-slate-400 mb-6">Integrate the Security Guardian Orchestrator into your repository in under 2 minutes.</p>
-
-                <!-- Onboarding Tabs -->
-                <div class="flex border-b border-slate-900 mb-6 overflow-x-auto whitespace-nowrap">
-                    <button onclick="switchOnboardingTab('steps')" id="tab-steps" class="py-3 px-4 text-sm font-semibold border-b-2 border-indigo-500 text-indigo-400 transition-colors">
-                        1. Installation Steps
-                    </button>
-                    <button onclick="switchOnboardingTab('github')" id="tab-github" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-colors">
-                        2. GitHub Actions Setup
-                    </button>
-                    <button onclick="switchOnboardingTab('gitlab')" id="tab-gitlab" class="py-3 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-300 transition-colors">
-                        3. GitLab CI Configuration
-                    </button>
-                </div>
-
-                <!-- Onboarding Content -->
-                <div id="content-steps" class="space-y-4 text-sm text-slate-300 leading-relaxed">
-                    <div class="flex items-start gap-4">
-                        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold font-mono">1</span>
-                        <div>
-                            <p class="font-semibold text-white">Save your API Key</p>
-                            <p class="text-xs text-slate-400 mt-1">Submit your OpenRouter key in the API Configuration panel on the left.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-4">
-                        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold font-mono">2</span>
-                        <div>
-                            <p class="font-semibold text-white">Add Repository Secrets</p>
-                            <p class="text-xs text-slate-400 mt-1">Create a repository secret named <code class="text-indigo-400 font-mono">OPENROUTER_API_KEY</code> and paste your key. For GitLab, add <code class="text-indigo-400 font-mono">GITLAB_TOKEN</code> and configure it to have repository write access.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-4">
-                        <span class="flex-shrink-0 w-6 h-6 rounded-full bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold font-mono">3</span>
-                        <div>
-                            <p class="font-semibold text-white">Paste Job Configuration</p>
-                            <p class="text-xs text-slate-400 mt-1">Copy the YAML templates from Tab 2 or Tab 3 and add them directly to your repository workflow directory.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="content-github" class="hidden space-y-4">
-                    <p class="text-xs text-slate-400 leading-relaxed">Paste this workflow file directly into <code class="text-slate-300 font-mono">.github/workflows/guardian.yml</code> to run audits on Pull Requests:</p>
-                    <div class="relative bg-slate-950/80 border border-slate-900 rounded-2xl p-4 font-mono text-xs overflow-x-auto text-indigo-300 max-h-48">
-                        <pre>name: Security Guardian Scan
-on:
-  pull_request:
-    branches: [ main, master ]
-jobs:
-  guardian_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: pip install requests
-      - name: Run Guardian
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -sS https://raw.githubusercontent.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator/main/guardian.py -o guardian.py
-          python guardian.py --project-id ${{ github.repository }} --mr-iid ${{ github.event.pull_request.number }}</pre>
-                        <button onclick="copyToClipboard('content-github')" class="absolute top-3 right-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 hover:text-slate-200 text-xs transition-colors cursor-pointer">Copy</button>
-                    </div>
-                </div>
-
-                <div id="content-gitlab" class="hidden space-y-4">
-                    <p class="text-xs text-slate-400 leading-relaxed">Add this job sequence directly into your <code class="text-slate-300 font-mono">.gitlab-ci.yml</code> file:</p>
-                    <div class="relative bg-slate-950/80 border border-slate-900 rounded-2xl p-4 font-mono text-xs overflow-x-auto text-indigo-300 max-h-48">
-                        <pre>stages:
-  - test
-
-security-scan:
-  stage: test
-  image: python:3.10-slim
-  before_script:
-    - pip install requests
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-  script:
-    - curl -sS https://raw.githubusercontent.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator/main/guardian.py -o guardian.py
-    - python guardian.py --project-id $CI_PROJECT_ID --mr-iid $CI_MERGE_REQUEST_IID --gitlab-url $CI_SERVER_URL</pre>
-                        <button onclick="copyToClipboard('content-gitlab')" class="absolute top-3 right-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-400 hover:text-slate-200 text-xs transition-colors cursor-pointer">Copy</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Repository Findings Table -->
-        <div class="backdrop-blur-md bg-slate-900/40 border border-slate-800 rounded-3xl p-8 shadow-xl space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-white">Consensus Scan Logs</h2>
-                    <p class="text-slate-400 text-xs mt-1">Review consolidated security reports generated by the autonomous mega-ensemble scanner.</p>
+                    <h2 class="text-lg font-bold text-[#4F6D7A] uppercase tracking-wider">Security Activity Feed</h2>
+                    <p class="text-slate-500 text-xs mt-1">Review live branch remediations for specific project environments.</p>
                 </div>
                 
                 <!-- Repo Selection Pills -->
-                <div class="flex bg-slate-950/60 p-1 rounded-2xl border border-slate-800 max-w-max self-start sm:self-center overflow-x-auto">
-                    <button onclick="switchRepo('SoftHive-group/Internal-Tools')" id="repo-softhive" class="px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-300 bg-indigo-600 text-white shadow shadow-indigo-600/10">
+                <div class="flex border border-[#4F6D7A]">
+                    <button onclick="switchRepo('SoftHive-group/Internal-Tools')" id="repo-softhive" 
+                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors bg-[#4F6D7A] text-white cursor-pointer">
                         SoftHive-group/Internal-Tools
                     </button>
-                    <button onclick="switchRepo('Guardian-Shield/Web-Portal')" id="repo-guardian" class="px-4 py-2 text-xs font-semibold rounded-xl transition-all duration-300 text-slate-500 hover:text-slate-300">
+                    <button onclick="switchRepo('Guardian-Shield/Web-Portal')" id="repo-guardian" 
+                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors text-[#4F6D7A] hover:bg-[#C0D6DF]/30 cursor-pointer">
                         Guardian-Shield/Web-Portal
                     </button>
                 </div>
             </div>
 
-            <!-- Findings Table -->
-            <div class="overflow-x-auto border border-slate-800 rounded-2xl bg-slate-950/30">
-                <table class="w-full border-collapse text-left text-sm">
-                    <thead>
-                        <tr class="bg-slate-950/70 text-slate-400 font-semibold border-b border-slate-900">
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider">File</th>
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider w-20">Line</th>
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider w-36">Consensus</th>
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider">Vulnerability Type</th>
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider">Synthesized Description</th>
-                            <th class="px-6 py-4 font-mono text-xs uppercase tracking-wider w-40">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="findingsTableBody" class="divide-y divide-slate-900">
-                        <% scans.forEach(s => { %>
-                            <tr class="hover:bg-slate-900/10 transition-colors">
-                                <td class="px-6 py-4 font-mono text-slate-300 text-xs">`<%= s.file %>`</td>
-                                <td class="px-6 py-4 font-mono text-slate-400 text-xs"><%= s.line %></td>
-                                <td class="px-6 py-4">
-                                    <% if (s.consensus_score >= 80) { %>
-                                        <span class="px-2.5 py-1 text-xs font-bold bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full"><%= s.consensus_score %>%</span>
-                                    <% } else if (s.consensus_score >= 50) { %>
-                                        <span class="px-2.5 py-1 text-xs font-bold bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full"><%= s.consensus_score %>%</span>
-                                    <% } else { %>
-                                        <span class="px-2.5 py-1 text-xs font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-full"><%= s.consensus_score %>%</span>
-                                    <% } %>
-                                </td>
-                                <td class="px-6 py-4 font-semibold text-slate-200"><%= s.vulnerability %></td>
-                                <td class="px-6 py-4 text-slate-400 text-xs leading-relaxed max-w-sm"><%= s.description %></td>
-                                <td class="px-6 py-4">
-                                    <% if (s.status.includes('✅')) { %>
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                            Patched & Applied
-                                        </span>
-                                    <% } else { %>
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-full">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                            Failed to Apply
-                                        </span>
-                                    <% } %>
-                                </td>
-                            </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+            <!-- Feed Grid Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="activityFeedContainer">
+                <!-- Dynamically populated by JS -->
             </div>
         </div>
     </main>
 
     <script>
-        function switchOnboardingTab(tabName) {
-            const tabs = ['steps', 'github', 'gitlab'];
-            tabs.forEach(t => {
-                const button = document.getElementById(`tab-${t}`);
-                const content = document.getElementById(`content-${t}`);
-                if (t === tabName) {
-                    button.classList.add('border-indigo-500', 'text-indigo-400');
-                    button.classList.remove('border-transparent', 'text-slate-500');
-                    content.classList.remove('hidden');
-                } else {
-                    button.classList.remove('border-indigo-500', 'text-indigo-400');
-                    button.classList.add('border-transparent', 'text-slate-500');
-                    content.classList.add('hidden');
-                }
-            });
-        }
-
-        function copyToClipboard(elementId) {
-            const preElement = document.querySelector(`#${elementId} pre`);
-            if (preElement) {
-                const text = preElement.innerText;
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('Configuration snippet copied to clipboard!');
-                }).catch(err => {
-                    console.error('Failed to copy configuration: ', err);
-                });
-            }
-        }
-
         function switchRepo(repoName) {
             const btnSoftHive = document.getElementById('repo-softhive');
             const btnGuardian = document.getElementById('repo-guardian');
 
             if (repoName === 'SoftHive-group/Internal-Tools') {
-                btnSoftHive.classList.add('bg-indigo-600', 'text-white', 'shadow');
-                btnSoftHive.classList.remove('text-slate-500');
-                btnGuardian.classList.remove('bg-indigo-600', 'text-white', 'shadow');
-                btnGuardian.classList.add('text-slate-500');
+                btnSoftHive.classList.add('bg-[#4F6D7A]', 'text-white');
+                btnSoftHive.classList.remove('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
+                btnGuardian.classList.remove('bg-[#4F6D7A]', 'text-white');
+                btnGuardian.classList.add('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
             } else {
-                btnGuardian.classList.add('bg-indigo-600', 'text-white', 'shadow');
-                btnGuardian.classList.remove('text-slate-500');
-                btnSoftHive.classList.remove('bg-indigo-600', 'text-white', 'shadow');
-                btnSoftHive.classList.add('text-slate-500');
+                btnGuardian.classList.add('bg-[#4F6D7A]', 'text-white');
+                btnGuardian.classList.remove('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
+                btnSoftHive.classList.remove('bg-[#4F6D7A]', 'text-white');
+                btnSoftHive.classList.add('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
             }
 
             // Fetch table data via Express API
             fetch(`/api/scans/${encodeURIComponent(repoName)}`)
                 .then(response => response.json())
                 .then(data => {
-                    const tableBody = document.getElementById('findingsTableBody');
-                    tableBody.innerHTML = '';
+                    const feedContainer = document.getElementById('activityFeedContainer');
+                    feedContainer.innerHTML = '';
 
-                    // Update Metrics dynamically for demo experience
                     const totalVulns = data.scans.length;
                     const totalPatched = data.scans.filter(s => s.status.includes('✅')).length;
 
                     document.getElementById('metricVulns').innerText = totalVulns;
                     document.getElementById('metricPatches').innerText = totalPatched;
 
-                    data.scans.forEach(s => {
-                        let scoreBadgeClass = 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400';
-                        if (s.consensus_score >= 80) {
-                            scoreBadgeClass = 'bg-rose-500/10 border-rose-500/20 text-rose-400';
-                        } else if (s.consensus_score >= 50) {
-                            scoreBadgeClass = 'bg-amber-500/10 border-amber-500/20 text-amber-400';
-                        }
-
-                        let statusBadge = '';
-                        if (s.status.includes('✅')) {
-                            statusBadge = `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    Patched & Applied
-                                </span>
-                            `;
-                        } else {
-                            statusBadge = `
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-full">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                    Failed to Apply
-                                </span>
-                            `;
-                        }
-
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-900/10 transition-colors';
-                        row.innerHTML = `
-                            <td class="px-6 py-4 font-mono text-slate-300 text-xs">\`${s.file}\`</td>
-                            <td class="px-6 py-4 font-mono text-slate-400 text-xs">${s.line}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2.5 py-1 text-xs font-bold border rounded-full ${scoreBadgeClass}">${s.consensus_score}%</span>
-                            </td>
-                            <td class="px-6 py-4 font-semibold text-slate-200">${s.vulnerability}</td>
-                            <td class="px-6 py-4 text-slate-400 text-xs leading-relaxed max-w-sm">${s.description}</td>
-                            <td class="px-6 py-4">${statusBadge}</td>
+                    if (totalVulns === 0) {
+                        feedContainer.innerHTML = `
+                            <div class="col-span-full border border-dashed border-[#4F6D7A] p-12 text-center">
+                                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">No scans recorded for this repository.</p>
+                            </div>
                         `;
-                        tableBody.appendChild(row);
+                        return;
+                    }
+
+                    data.scans.forEach(s => {
+                        const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
+                        const branchName = `guardian/remediate-${fileSlug}_${s.line}`;
+                        const isGitLab = s.repo_name.toLowerCase().includes('gitlab') || s.repo_name.includes('SoftHive-group');
+                        const branchUrl = isGitLab 
+                            ? `https://gitlab.com/${s.repo_name}/-/tree/${branchName}` 
+                            : `https://github.com/${s.repo_name}/tree/${branchName}`;
+
+                        const isPatched = s.status.includes('✅') || s.status.includes('Patched');
+
+                        let scoreBadgeClass = 'bg-slate-50 text-[#4F6D7A]';
+                        if (s.consensus_score >= 80) {
+                            scoreBadgeClass = 'bg-rose-50 text-rose-700 border-rose-700';
+                        } else if (s.consensus_score >= 50) {
+                            scoreBadgeClass = 'bg-amber-50 text-amber-700 border-amber-700';
+                        }
+
+                        const statusText = isPatched ? 'Patched' : 'Failed to Apply';
+                        const statusClass = isPatched ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
+
+                        const card = document.createElement('div');
+                        card.className = 'bg-white border-2 border-[#4F6D7A] p-6 space-y-4 flex flex-col justify-between';
+                        card.innerHTML = `
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-mono text-xs text-[#4F6D7A] bg-[#C0D6DF]/20 px-2 py-1 border border-[#4F6D7A]/30">
+                                        \${s.file}:L\${s.line}
+                                    </span>
+                                    <span class="text-xs font-bold uppercase tracking-widest px-2.5 py-1 border border-[#4F6D7A] \${scoreBadgeClass}">
+                                        Consensus: \${s.consensus_score}%
+                                    </span>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="text-base font-bold text-[#4F6D7A] tracking-tight">\${s.vulnerability}</h3>
+                                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">\${s.description}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-4 gap-2 text-[9px] font-bold uppercase tracking-wider text-center border-t border-[#4F6D7A]/30 pt-3">
+                                    <div class="py-1 bg-[#4F6D7A] text-white">Detected</div>
+                                    <div class="py-1 bg-[#4F6D7A] text-white">AI Review</div>
+                                    \${isPatched ? `
+                                        <div class="py-1 bg-[#4F6D7A] text-white">Patched</div>
+                                        <div class="py-1 bg-[#4F6D7A] text-white">Pushed</div>
+                                    ` : `
+                                        <div class="py-1 bg-white border border-rose-500 text-rose-600">Failed</div>
+                                        <div class="py-1 bg-white border border-[#4F6D7A]/30 text-[#4F6D7A]/30 font-medium text-[#4F6D7A]/40">Blocked</div>
+                                    `}
+                                </div>
+                                
+                                <div class="flex items-center justify-between border-t border-[#4F6D7A]/30 pt-3">
+                                    <span class="text-[11px] font-semibold text-slate-500">
+                                        Status: <strong class="\${statusClass}">\${statusText}</strong>
+                                    </span>
+                                    <a href="\${branchUrl}" target="_blank" 
+                                       class="bg-[#DD6E42] hover:bg-[#DD6E42]/90 text-white font-bold uppercase tracking-wider text-[10px] px-3.5 py-1.5 transition-colors cursor-pointer">
+                                        View Sub-Branch
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                        feedContainer.appendChild(card);
                     });
                 })
                 .catch(err => {
                     console.error('Error switching repository scans:', err);
                 });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            switchRepo('SoftHive-group/Internal-Tools');
+        });
     </script>
 </body>
 </html>

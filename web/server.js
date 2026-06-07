@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('./database');
 
 const app = express();
@@ -66,9 +67,11 @@ app.post('/signup', (req, res) => {
             return res.render('login', { error: 'Signup failed. Please try again.', success: null });
         }
 
+        const guardianUserId = 'usr_' + crypto.randomBytes(6).toString('hex');
+
         db.run(
-            'INSERT INTO users (email, password_hash) VALUES (?, ?)',
-            [email, hash],
+            'INSERT INTO users (email, password_hash, guardian_user_id) VALUES (?, ?, ?)',
+            [email, hash, guardianUserId],
             function (err2) {
                 if (err2) {
                     if (err2.message.includes('UNIQUE constraint failed')) {
@@ -120,14 +123,14 @@ app.get('/dashboard', checkAuth, (req, res) => {
     const userId = req.session.userId;
     const userEmail = req.session.userEmail;
 
-    db.get('SELECT openrouter_key FROM users WHERE id = ?', [userId], (err, user) => {
+    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
         if (err) {
             console.error('DB error fetching user:', err);
             return res.status(500).send('Internal Server Error');
         }
 
+        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
         const rawKey = user ? user.openrouter_key : '';
-        // Mask the key if it exists
         let maskedKey = '';
         if (rawKey) {
             maskedKey = rawKey.substring(0, 7) + '****************' + rawKey.substring(rawKey.length - 4);
@@ -153,22 +156,64 @@ app.get('/dashboard', checkAuth, (req, res) => {
                     res.render('dashboard', {
                         userEmail,
                         userId,
+                        guardianUserId,
                         maskedKey,
                         scans: demoScans,
                         isDemoMode: true,
-                        activeTab: 'github'
+                        activeTab: 'dashboard'
                     });
                 });
             } else {
                 res.render('dashboard', {
                     userEmail,
                     userId,
+                    guardianUserId,
                     maskedKey,
                     scans: userScans,
                     isDemoMode: false,
-                    activeTab: 'github'
+                    activeTab: 'dashboard'
                 });
             }
+        });
+    });
+});
+
+// GET GitHub Setup
+app.get('/setup/github', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const userEmail = req.session.userEmail;
+
+    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+            console.error('DB error fetching user:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
+        res.render('github', {
+            userEmail,
+            guardianUserId,
+            activeTab: 'github'
+        });
+    });
+});
+
+// GET GitLab Setup
+app.get('/setup/gitlab', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const userEmail = req.session.userEmail;
+
+    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+            console.error('DB error fetching user:', err);
+            return res.status(500).send('Internal Server Error');
+        }
+
+        const guardianUserId = user ? user.guardian_user_id : 'usr_demo';
+        res.render('gitlab', {
+            userEmail,
+            guardianUserId,
+            activeTab: 'gitlab'
         });
     });
 });
@@ -202,7 +247,7 @@ app.get('/api/scans/:repo', checkAuth, (req, res) => {
 
     // Fetch findings for the specified repo
     // Try user's own scans first. If none, search from global demo scans (user_id IS NULL)
-    db.all('SELECT * FROM scans WHERE user_id = ? AND repo_name = ? ORDER BY line ASC', [userId, repo], (err, rows) => {
+    db.all('SELECT * FROM scans WHERE user_id = ? AND repo_name = ? ORDER BY line DESC', [userId, repo], (err, rows) => {
         if (err) {
             console.error('DB error:', err);
             return res.status(500).json({ error: 'DB Error' });
@@ -213,7 +258,7 @@ app.get('/api/scans/:repo', checkAuth, (req, res) => {
         }
 
         // Fallback to demo scans
-        db.all('SELECT * FROM scans WHERE user_id IS NULL AND repo_name = ? ORDER BY line ASC', [repo], (err2, demoRows) => {
+        db.all('SELECT * FROM scans WHERE user_id IS NULL AND repo_name = ? ORDER BY line DESC', [repo], (err2, demoRows) => {
             if (err2) {
                 console.error('DB error:', err2);
                 return res.status(500).json({ error: 'DB Error' });

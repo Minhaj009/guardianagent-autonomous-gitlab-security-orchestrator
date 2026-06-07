@@ -14,46 +14,46 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center text-slate-800 px-4">
-    <div class="w-full max-w-md">
+<body class="bg-[#EAEAEA] min-h-screen flex items-center justify-center text-[#4F6D7A] px-4 font-sans">
+    <div class="w-full max-w-md my-12">
         <!-- Logo and header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center p-3 bg-white border-2 border-[#4F6D7A] rounded-none mb-4">
+            <div class="inline-flex items-center justify-center p-4 bg-[#C0D6DF]/20 border border-[#4F6D7A] mb-4">
                 <svg class="w-8 h-8 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight text-[#4F6D7A]">GuardianAgent</h1>
-            <p class="text-xs uppercase tracking-widest text-[#4F6D7A]/80 mt-1">Autonomous Security Orchestrator</p>
+            <h1 class="text-2xl font-bold tracking-tight text-[#4F6D7A] uppercase">GuardianAgent</h1>
+            <p class="text-[10px] uppercase tracking-widest text-[#4F6D7A]/80 mt-1.5 font-bold">Autonomous Security Orchestrator</p>
         </div>
 
         <!-- Minimalist Card -->
-        <div class="bg-white border-2 border-[#4F6D7A] p-8">
+        <div class="bg-white border border-[#4F6D7A] p-10">
             <!-- Auth switch tabs -->
-            <div class="flex border border-[#4F6D7A] mb-8">
-                <button id="loginTab" onclick="switchTab('login')" class="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#4F6D7A] text-white">
+            <div class="flex border border-[#4F6D7A] bg-[#C0D6DF]/15 p-1 mb-8">
+                <button id="loginTab" onclick="switchTab('login')" class="flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#E8DAB2] text-[#4F6D7A] cursor-pointer">
                     Sign In
                 </button>
-                <button id="signupTab" onclick="switchTab('signup')" class="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-200 text-[#4F6D7A] hover:bg-[#C0D6DF]/30">
+                <button id="signupTab" onclick="switchTab('signup')" class="flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/30 cursor-pointer">
                     Register
                 </button>
             </div>
 
             <!-- Error and Success Alerts -->
             <% if (error) { %>
-                <div class="mb-6 p-4 border border-rose-500 text-rose-700 bg-rose-50 text-xs flex items-center gap-3">
+                <div class="mb-6 p-4 border border-[#DD6E42] text-[#DD6E42] bg-[#DD6E42]/5 text-xs flex items-center gap-3">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span><%= error %></span>
+                    <span class="font-semibold"><%= error %></span>
                 </div>
             <% } %>
             <% if (success) { %>
-                <div class="mb-6 p-4 border border-emerald-500 text-emerald-700 bg-emerald-50 text-xs flex items-center gap-3">
+                <div class="mb-6 p-4 border border-[#4F6D7A] text-[#4F6D7A] bg-[#C0D6DF]/10 text-xs flex items-center gap-3">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span><%= success %></span>
+                    <span class="font-semibold"><%= success %></span>
                 </div>
             <% } %>
 
@@ -62,17 +62,17 @@
                 <div>
                     <label for="email" class="block text-xs font-bold text-[#4F6D7A] uppercase tracking-wider mb-2">Email Address</label>
                     <input type="email" name="email" id="email" required placeholder="developer@example.com" 
-                           class="w-full bg-white border border-[#4F6D7A] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#4F6D7A] transition-all duration-200">
+                           class="w-full bg-white border border-[#4F6D7A] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#4F6D7A] transition-all duration-200 text-[#4F6D7A]">
                 </div>
 
                 <div>
                     <label for="password" class="block text-xs font-bold text-[#4F6D7A] uppercase tracking-wider mb-2">Password</label>
                     <input type="password" name="password" id="password" required placeholder="••••••••••••" 
-                           class="w-full bg-white border border-[#4F6D7A] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#4F6D7A] transition-all duration-200">
+                           class="w-full bg-white border border-[#4F6D7A] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#4F6D7A] transition-all duration-200 text-[#4F6D7A]">
                 </div>
 
                 <button type="submit" id="submitBtn" 
-                        class="w-full py-3.5 bg-[#DD6E42] hover:bg-[#DD6E42]/90 text-white font-bold uppercase tracking-wider text-xs transition-colors duration-200 cursor-pointer">
+                        class="w-full py-3.5 bg-[#DD6E42] hover:opacity-90 text-white font-bold uppercase tracking-wider text-xs transition-all duration-200 cursor-pointer">
                     Sign In to Console
                 </button>
             </form>
@@ -90,20 +90,14 @@
                 form.action = '/signup';
                 submitBtn.innerText = 'Create Account';
                 
-                signupTab.classList.add('bg-[#4F6D7A]', 'text-white');
-                signupTab.classList.remove('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
-                
-                loginTab.classList.remove('bg-[#4F6D7A]', 'text-white');
-                loginTab.classList.add('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
+                signupTab.className = 'flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#E8DAB2] text-[#4F6D7A] cursor-pointer';
+                loginTab.className = 'flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/30 cursor-pointer';
             } else {
                 form.action = '/login';
                 submitBtn.innerText = 'Sign In to Console';
                 
-                loginTab.classList.add('bg-[#4F6D7A]', 'text-white');
-                loginTab.classList.remove('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
-                
-                signupTab.classList.remove('bg-[#4F6D7A]', 'text-white');
-                signupTab.classList.add('text-[#4F6D7A]', 'hover:bg-[#C0D6DF]/30');
+                loginTab.className = 'flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#E8DAB2] text-[#4F6D7A] cursor-pointer';
+                signupTab.className = 'flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/30 cursor-pointer';
             }
         }
     </script>

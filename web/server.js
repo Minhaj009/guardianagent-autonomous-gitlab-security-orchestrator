@@ -272,6 +272,55 @@ app.get('/api/scans/:repo', checkAuth, (req, res) => {
     });
 });
 
+// POST API to receive scans reported by the runner CLI
+app.post('/api/scans/report', (req, res) => {
+    const { guardian_user_id, repo_name, scans } = req.body;
+
+    if (!guardian_user_id || !repo_name || !scans) {
+        return res.status(400).json({ error: 'Missing required fields: guardian_user_id, repo_name, or scans.' });
+    }
+
+    // Find user by guardian_user_id
+    db.get('SELECT id FROM users WHERE guardian_user_id = ?', [guardian_user_id], (err, user) => {
+        if (err) {
+            console.error('DB error finding user:', err);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found with the provided guardian_user_id.' });
+        }
+
+        const userId = user.id;
+
+        // Delete old scans for this repository under this user
+        db.run('DELETE FROM scans WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errDel) => {
+            if (errDel) {
+                console.error('DB error deleting old scans:', errDel);
+                return res.status(500).json({ error: 'Failed to clear old scans.' });
+            }
+
+            // Insert new scans
+            const stmt = db.prepare(`
+                INSERT INTO scans (user_id, repo_name, file, line, consensus_score, vulnerability, description, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+            scans.forEach(s => {
+                stmt.run(userId, repo_name, s.file, s.line, s.consensus_score, s.vulnerability, s.description, s.status);
+            });
+
+            stmt.finalize((errFinal) => {
+                if (errFinal) {
+                    console.error('DB error finalizing scans insert:', errFinal);
+                    return res.status(500).json({ error: 'Failed to record scan results.' });
+                }
+                res.json({ success: true, message: `Successfully recorded ${scans.length} scans.` });
+            });
+        });
+    });
+});
+
 // GET Logout
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => {

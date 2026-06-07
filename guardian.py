@@ -572,7 +572,7 @@ def analyze_diff_ensemble(changes: List[Dict[str, Any]], api_key: str) -> str:
     else:
         markdown.append("No automated patches were applied (either no high-confidence findings were identified, or remediation was skipped).")
         
-    return "\n".join(markdown), remediated_files
+    return "\n".join(markdown), remediated_files, final_groups, remediated_results
 
 
 def post_mr_comment(project_id: str, mr_iid: int, comment: str, gitlab_url: str, token: str) -> Dict[str, Any]:
@@ -641,6 +641,27 @@ def git_commit_and_push(remediated_files: List[str], token: str, project_id: str
         logger.error(f"Git operations failed: {str(e)}")
 
 
+def report_scans_to_portal(guardian_user_id: str, repo_name: str, scans: List[Dict[str, Any]], portal_url: str = None):
+    if not portal_url:
+        portal_url = os.environ.get("GUARDIAN_PORTAL_URL", "http://localhost:3000")
+        
+    url = f"{portal_url.rstrip('/')}/api/scans/report"
+    payload = {
+        "guardian_user_id": guardian_user_id,
+        "repo_name": repo_name,
+        "scans": scans
+    }
+    logger.info(f"Reporting {len(scans)} findings to Guardian portal at {url}...")
+    try:
+        response = requests.post(url, json=payload, timeout=15)
+        if response.status_code == 200:
+            logger.info("Successfully reported scans to Guardian portal.")
+        else:
+            logger.warning(f"Guardian portal responded with status {response.status_code}: {response.text}")
+    except Exception as e:
+        logger.error(f"Failed to report scans to Guardian portal: {str(e)}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="GitLab Security Guardian OpenRouter Mega-Ensemble Orchestrator")
     parser.add_argument("--project-id", required=True, help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
@@ -666,7 +687,32 @@ def main():
         
         # 2. Analyze using OpenRouter Ensemble with Consensus & Auto-Remediation
         # Local file modifications are performed and verified inside this call
-        report_markdown, remediated_files = analyze_diff_ensemble(changes, openrouter_key)
+        report_markdown, remediated_files, final_groups, remediated_results = analyze_diff_ensemble(changes, openrouter_key)
+        
+        # Report results back to the web application if GUARDIAN_USER_ID is set
+        guardian_user_id = os.environ.get("GUARDIAN_USER_ID")
+        if guardian_user_id:
+            scans_to_report = []
+            for g in final_groups:
+                # Find matching remediation status
+                status = "✅ No patch needed (Consensus low)"
+                for r in remediated_results:
+                    if r["file"] == g["file"] and str(r["line"]) == str(g["line"]):
+                        status = r["status"]
+                        break
+                
+                scans_to_report.append({
+                    "file": g["file"],
+                    "line": int(g["line"]) if str(g["line"]).isdigit() else 0,
+                    "consensus_score": int(g["score"]),
+                    "vulnerability": g["vulnerability"],
+                    "description": g["synthesized_description"],
+                    "status": status
+                })
+            
+            report_scans_to_portal(guardian_user_id, args.project_id, scans_to_report)
+        else:
+            logger.info("GUARDIAN_USER_ID not set. Skipping report back to portal.")
         
         # 3. Post comment back to GitLab MR
         full_comment = f"## 🛡️ GitLab Security Guardian Consensus Report\n\n{report_markdown}"

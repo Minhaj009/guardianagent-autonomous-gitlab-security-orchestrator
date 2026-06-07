@@ -17,7 +17,7 @@
 <body class="bg-[#EAEAEA] text-slate-800 min-h-screen pb-12">
 
     <!-- Sticky Top Navigation -->
-    <nav class="sticky top-0 z-40 bg-[#EAEAEA] border-b-2 border-[#4F6D7A] px-6 py-4 flex items-center justify-between">
+    <nav class="sticky top-0 z-50 bg-[#EAEAEA] border-b-2 border-[#4F6D7A] px-6 py-4 flex items-center justify-between pointer-events-auto" style="pointer-events: auto;">
         <div class="flex items-center gap-3">
             <div class="p-2 bg-white border border-[#4F6D7A]">
                 <svg class="w-6 h-6 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -32,13 +32,13 @@
 
         <!-- Center links -->
         <div class="hidden md:flex items-center gap-6">
-            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'dashboard' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= currentPath === '/dashboard' ? 'border-[#DD6E42] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
                 Review Dashboard
             </a>
-            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'github' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= currentPath === '/setup/github' ? 'border-[#DD6E42] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
                 GitHub Setup
             </a>
-            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= activeTab === 'gitlab' ? 'border-[#4F6D7A] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
+            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-colors py-2 px-3 border-b-2 <%= currentPath === '/setup/gitlab' ? 'border-[#DD6E42] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A]' %>">
                 GitLab Setup
             </a>
         </div>

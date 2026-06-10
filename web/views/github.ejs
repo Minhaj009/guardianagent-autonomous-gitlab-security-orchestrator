@@ -1,116 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>GuardianAgent - GitHub Integration Setup</title>
-    <!-- Tailwind CSS v4 via CDN -->
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#375561",
+                        "primary-container": "#4f6d7a",
+                        "background": "#f2fbff",
+                        "surface": "#ffffff",
+                        "surface-dim": "#c8dee7",
+                        "surface-bright": "#f2fbff",
+                        "on-surface": "#091e25",
+                        "on-surface-variant": "#42484b",
+                        "outline": "#72787b",
+                        "outline-variant": "#c2c7cb",
+                        "secondary": "#a04118",
+                        "secondary-container": "#fe8859",
+                        "tertiary": "#685e3e",
+                        "tertiary-container": "#b7ab86"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.5rem"
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #EAEAEA;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .copy-success {
+            color: #375561 !important;
         }
     </style>
 </head>
-<body class="bg-[#EAEAEA] text-[#4F6D7A] min-h-screen pb-12 font-sans">
+<body class="bg-background text-on-surface font-body-md min-h-screen flex flex-col antialiased">
 
     <!-- Sticky Top Navigation -->
-    <nav class="sticky top-0 z-50 bg-[#EAEAEA] border-b border-[#4F6D7A] px-6 py-4 flex items-center justify-between pointer-events-auto" style="pointer-events: auto;">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-white border border-[#4F6D7A]">
-                <svg class="w-6 h-6 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
+    <header class="bg-surface sticky top-0 w-full z-50 border-b border-outline-variant">
+        <div class="flex justify-between items-center w-full px-6 h-16 max-w-7xl mx-auto">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">shield</span>
+                    <span class="font-bold text-lg text-primary tracking-tight">GuardianAgent</span>
+                    <span class="text-[10px] border border-outline text-primary px-1.5 py-0.5 ml-2 font-mono uppercase font-bold rounded">v1.0.0</span>
+                </div>
+                <nav class="hidden md:flex items-center gap-6 ml-4">
+                    <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/dashboard' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        Review Dashboard
+                    </a>
+                    <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/github' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        GitHub Setup
+                    </a>
+                    <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/gitlab' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        GitLab Setup
+                    </a>
+                </nav>
             </div>
-            <div>
-                <span class="font-bold text-lg text-[#4F6D7A] tracking-tight">GuardianAgent</span>
-                <span class="text-[10px] border border-[#4F6D7A] text-[#4F6D7A] px-1.5 py-0.5 ml-2 font-mono uppercase font-bold">v1.0.0</span>
+            
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">User</p>
+                    <p class="text-xs font-bold text-primary"><%= userEmail %></p>
+                </div>
+                <a href="/logout" class="py-2 px-3 border border-outline text-xs font-bold uppercase tracking-wider text-primary hover:bg-surface-dim transition-all duration-200 cursor-pointer rounded-lg" title="Logout">
+                    Logout
+                </a>
             </div>
         </div>
+    </header>
 
-        <!-- Center links -->
-        <div class="hidden md:flex items-center gap-4">
-            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/dashboard' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                Review Dashboard
-            </a>
-            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/setup/github' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                GitHub Setup
-            </a>
-            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/setup/gitlab' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                GitLab Setup
-            </a>
-        </div>
-
-        <div class="flex items-center gap-4">
-            <div class="text-right hidden sm:block">
-                <p class="text-[10px] text-[#4F6D7A]/60 uppercase tracking-widest font-semibold">User</p>
-                <p class="text-xs font-bold text-[#4F6D7A]"><%= userEmail %></p>
+    <!-- Main Content Grid -->
+    <div class="flex-1 flex max-w-7xl mx-auto w-full px-6 py-10 gap-8 relative">
+        
+        <!-- Left Side Stepper Navigation -->
+        <aside class="hidden md:block w-1/4 pr-4 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
+            <div class="mb-8">
+                <h2 class="text-lg font-bold text-primary">Onboarding</h2>
+                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-semibold mt-1">GitHub Actions Setup</p>
             </div>
-            <a href="/logout" class="py-2 px-3 border border-[#4F6D7A] text-xs font-bold uppercase tracking-wider text-[#4F6D7A] hover:bg-[#C0D6DF]/30 transition-all duration-200 cursor-pointer" title="Logout">
-                Logout
-            </a>
-        </div>
-    </nav>
+            <nav class="flex flex-col gap-4 relative">
+                <!-- Vertical Connector Line -->
+                <div class="absolute left-3.5 top-8 bottom-8 w-px bg-outline-variant -z-10"></div>
+                
+                <!-- Step 1 -->
+                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step1')">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-surface shadow-sm">
+                        <span class="text-white text-xs font-bold font-mono">1</span>
+                    </div>
+                    <div class="pt-1">
+                        <span class="block text-primary font-bold text-xs uppercase tracking-wider group-hover:underline">Obtain Access Token</span>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">Classic Personal Token</p>
+                    </div>
+                </a>
 
-    <main class="max-w-4xl mx-auto px-6 py-12">
-        <div class="border border-[#4F6D7A] bg-white p-10 mb-8 space-y-8">
-            <div>
-                <h1 class="text-2xl font-bold text-[#4F6D7A] uppercase tracking-tight mb-2">GitHub Actions Setup Guide</h1>
-                <p class="text-xs text-[#4F6D7A]/80 font-medium">Follow these steps to connect your GitHub repositories to GuardianAgent.</p>
-            </div>
+                <!-- Step 2 -->
+                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step2')">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
+                        <span class="text-on-surface-variant group-hover:text-primary text-xs font-bold font-mono">2</span>
+                    </div>
+                    <div class="pt-1">
+                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">Secrets Config</span>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">GCP & Git keys setup</p>
+                    </div>
+                </a>
 
-            <div class="space-y-8">
-                <!-- Section 1 -->
-                <div>
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">1. Obtain Access Tokens</h2>
-                    <ol class="list-decimal list-outside ml-5 space-y-3 text-xs text-[#4F6D7A] font-medium leading-relaxed">
-                        <li>Go to your GitHub Settings, select <strong class="text-[#4F6D7A]">Developer Settings</strong> in the left sidebar, and click <strong class="text-[#4F6D7A]">Personal Access Tokens (Classic)</strong>. Do not use fine-grained tokens as they require complex manual repository permission configurations.</li>
-                        <li>Click <strong class="text-[#4F6D7A]">Generate new token (Classic)</strong>, give the token a descriptive name, and explicitly check the <strong class="text-[#4F6D7A]">`repo`</strong> checkbox scope to grant full repository write, commit, and pull request access.</li>
-                        <li>Copy the generated token immediately. Store it securely; it will not be displayed again.</li>
+                <!-- Step 3 -->
+                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step3')">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
+                        <span class="text-on-surface-variant group-hover:text-primary text-xs font-bold font-mono">3</span>
+                    </div>
+                    <div class="pt-1">
+                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">Workflow File</span>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">Define guardian.yml action</p>
+                    </div>
+                </a>
+
+                <!-- Troubleshooting -->
+                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('trouble')">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
+                        <span class="material-symbols-outlined text-outline-variant group-hover:text-primary text-sm">build</span>
+                    </div>
+                    <div class="pt-1">
+                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">Troubleshooting</span>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">Resolve token failures</p>
+                    </div>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Guide Canvas -->
+        <main class="w-full md:w-3/4 pb-12 space-y-10">
+            <header class="mb-4">
+                <h1 class="text-3xl font-bold text-primary mb-2">GitHub Actions Setup Guide</h1>
+                <p class="text-on-surface-variant text-sm max-w-3xl leading-relaxed">
+                    Connect your GitHub repositories to GuardianAgent by establishing GitHub Actions secrets and setting up automated pull request analysis.
+                </p>
+            </header>
+
+            <!-- Step 1: Obtain Access Tokens -->
+            <section id="step1" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
+                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">1</div>
+                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Obtain Personal Access Tokens</h2>
+                </div>
+                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
+                    <p>
+                        Generate a Git credential token that permits GuardianAgent to commit remediation patches back to your code repository:
+                    </p>
+                    <ol class="list-decimal list-outside ml-5 space-y-2.5">
+                        <li>Navigate to your GitHub account settings, choose **Developer Settings** > **Personal Access Tokens (Classic)**.</li>
+                        <li>Click **Generate new token (Classic)** and provide a descriptive name.</li>
+                        <li>Check the <strong class="text-primary">`repo`</strong> scope checkbox to enable writing commits and creating/updating pull request branches.</li>
+                        <li>Copy the generated token immediately. Save it securely, as GitHub will not display it again.</li>
                     </ol>
                 </div>
+            </section>
 
-                <!-- Section 2 -->
-                <div>
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">2. Add Secrets to GitHub</h2>
-                    <ol class="list-decimal list-outside ml-5 space-y-3 text-xs text-[#4F6D7A] font-medium leading-relaxed" start="4">
-                        <li>In your GitHub repository, click <strong class="text-[#4F6D7A]">Settings</strong>, then select <strong class="text-[#4F6D7A]">Secrets and variables</strong> and click <strong class="text-[#4F6D7A]">Actions</strong> in the sidebar.</li>
-                        <li>Create a new Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1.5 py-0.5 font-mono text-[#4F6D7A]">OPENROUTER_API_KEY</code> and paste your OpenRouter key.</li>
-                        <li>Create a new Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1.5 py-0.5 font-mono text-[#4F6D7A]">GIT_TOKEN</code> and paste your GitHub Personal Access Token (Classic).</li>
-                        <li>Create a new Repository Secret (do not use Environment Secrets) named <code class="bg-[#C0D6DF]/30 px-1.5 py-0.5 font-mono text-[#4F6D7A]">GUARDIAN_USER_ID</code> and paste your unique ID shown below:</li>
-                    </ol>
-                    <div class="mt-3 flex items-center justify-between border border-[#4F6D7A] bg-[#C0D6DF]/15 p-4 font-mono text-xs">
-                        <span>GUARDIAN_USER_ID: <strong class="text-[#DD6E42]"><%= guardianUserId %></strong></span>
-                        <button onclick="navigator.clipboard.writeText('<%= guardianUserId %>'); alert('Copied User ID!');" 
-                                class="px-4 py-2 bg-[#DD6E42] hover:opacity-90 text-white text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer">
-                            Copy
+            <!-- Step 2: Add Secrets to GitHub -->
+            <section id="step2" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
+                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">2</div>
+                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Inject Repository Secrets</h2>
+                </div>
+                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
+                    <p>
+                        In your GitHub repository, click **Settings**, select **Secrets and variables** > **Actions**, and create three new Repository Secrets:
+                    </p>
+                    <ul class="list-disc list-outside ml-5 space-y-2.5">
+                        <li><strong>GCP_SERVICE_KEY</strong>: Your Google Cloud Service Account JSON key (having Vertex AI User access permissions).</li>
+                        <li><strong>GIT_TOKEN</strong>: Your Personal Access Token (Classic) created in Step 1.</li>
+                        <li><strong>GUARDIAN_USER_ID</strong>: Your unique portal user account identifier:</li>
+                    </ul>
+                    
+                    <!-- User ID Container -->
+                    <div class="mt-3 flex items-center justify-between border border-outline-variant bg-background p-4 rounded-xl font-mono text-xs text-on-surface">
+                        <span>GUARDIAN_USER_ID: <strong class="text-secondary select-all"><%= guardianUserId %></strong></span>
+                        <button onclick="copyText('<%= guardianUserId %>', this)" 
+                                class="px-4 py-2 bg-secondary hover:opacity-90 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm">
+                            <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy ID
                         </button>
                     </div>
                 </div>
+            </section>
 
-                <!-- Section 3 -->
-                <div>
-                    <h2 class="text-xs font-bold uppercase tracking-widest text-[#4F6D7A] border-b border-[#4F6D7A]/30 pb-1.5 mb-3">3. Create Workflow File</h2>
-                    <ol class="list-decimal list-outside ml-5 space-y-3 text-xs text-[#4F6D7A] font-medium leading-relaxed" start="8">
-                        <li>In your local project, create a folder structure named <code class="bg-[#C0D6DF]/30 px-1.5 py-0.5 font-mono text-[#4F6D7A]">.github/workflows</code>.</li>
-                        <li>Create a new file inside named <code class="bg-[#C0D6DF]/30 px-1.5 py-0.5 font-mono text-[#4F6D7A]">guardian.yml</code>.</li>
-                        <li>Copy the entire configuration snippet below, paste it into the file, commit, and push it to GitHub.</li>
-                    </ol>
-
-                    <div class="mt-6 relative border border-[#4F6D7A] bg-white">
-                        <div class="flex items-center justify-between border-b border-[#4F6D7A] bg-[#C0D6DF]/15 px-4 py-2.5 text-xs font-bold text-[#4F6D7A] uppercase tracking-wider">
-                            <span>GitHub Actions Workflow</span>
-                            <button onclick="copySnippet()" 
-                                    class="px-3 py-1 bg-[#DD6E42] hover:opacity-90 text-white text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all duration-200">
-                                Copy Snippet
-                            </button>
-                        </div>
-                        <div class="border-b border-[#4F6D7A]/20 bg-[#F5F5F5] px-4 py-1.5 text-[10px] font-mono text-[#4F6D7A]/60">
-                            Path: .github/workflows/guardian.yml
-                        </div>
-                        <pre id="yamlSnippet" class="p-4 font-mono text-[11px] leading-relaxed text-slate-100 overflow-x-auto max-h-[350px] bg-slate-950">name: Security Guardian Scan
+            <!-- Step 3: Create Workflow File -->
+            <section id="step3" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
+                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">3</div>
+                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Create GitHub Actions Workflow File</h2>
+                </div>
+                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
+                    <p>
+                        In your local repository root, create the folder structure <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">.github/workflows</code>, create a new file named <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">guardian.yml</code>, and add the following workflow configuration:
+                    </p>
+                    
+                    <!-- Copy Code Block -->
+                    <div class="relative group mt-4">
+                        <button class="absolute right-2 top-2 bg-surface border border-outline-variant hover:border-primary rounded-md p-1.5 transition-colors cursor-pointer"
+                                onclick="copyText(document.getElementById('yamlSnippet').innerText, this)" title="Copy configuration snippet">
+                            <span class="material-symbols-outlined text-sm block">content_copy</span>
+                        </button>
+                        <pre id="yamlSnippet" class="bg-slate-950 text-slate-100 rounded-lg p-5 font-mono text-[11px] overflow-x-auto leading-relaxed max-h-[350px]">name: Security Guardian Scan
 on:
   pull_request:
     branches: [ main, master ]
@@ -130,38 +234,135 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_KEY }}
       - name: Run Guardian
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
           GUARDIAN_USER_ID: "<%= guardianUserId %>"
         run: |
           curl -sS https://raw.githubusercontent.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator/main/guardian.py -o guardian.py
-          python guardian.py --project-id ${{ github.repository }} --mr-iid ${{ github.event.pull_request.number }}</pre>
+          python guardian.py --project-id ${{ github.repository }} --mr-iid ${{ github.event.pull_request.number }} --gcp-project "YOUR_GCP_PROJECT_ID"</pre>
                     </div>
                 </div>
+            </section>
 
-                <!-- Troubleshooting Tips -->
-                <div class="mt-8 pt-6 border-t border-[#4F6D7A]/30">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#4F6D7A] mb-3">Troubleshooting Tips</h3>
-                    <ul class="list-disc list-outside ml-5 space-y-2.5 text-xs text-[#4F6D7A] leading-relaxed font-medium">
-                        <li><strong>Variable Spelling:</strong> Ensure all secret names are in ALL CAPS with no leading/trailing spaces.</li>
-                        <li><strong>Permissions Check:</strong> If you encounter a 403 error, your token lacks write access. Ensure the token has repository write permissions.</li>
-                        <li><strong>Protected Branches:</strong> For GitLab, ensure 'Protect variable' is DISABLED so the Guardian can run on your active Merge Request branches.</li>
-                    </ul>
+            <!-- Troubleshooting Section -->
+            <section id="trouble" class="scroll-mt-20">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">build</span>
+                    Troubleshooting Configuration Issues
+                </h2>
+                
+                <div class="border border-outline-variant rounded-xl overflow-hidden bg-surface shadow-sm">
+                    <!-- Item 1 -->
+                    <div class="border-b border-outline-variant last:border-b-0">
+                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
+                                onclick="toggleAccordion('acc1')">
+                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
+                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
+                                Variable Naming and Spaces checks
+                            </span>
+                            <span id="acc1-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
+                        </button>
+                        <div id="acc1" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
+                            Ensure secrets are spelled in exact uppercase with no trailing or leading whitespace, and they are saved under Repository Secrets (not Environment Secrets).
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="border-b border-outline-variant last:border-b-0">
+                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
+                                onclick="toggleAccordion('acc2')">
+                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
+                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
+                                Token Scope and Repository Write failures
+                            </span>
+                            <span id="acc2-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
+                        </button>
+                        <div id="acc2" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
+                            If the workflow job runs but commits fail with authorization errors, check that the personal access token (Classic) has the <code class="font-mono bg-background px-1 rounded text-primary">repo</code> scope checked and has write permissions.
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="border-b border-outline-variant last:border-b-0">
+                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
+                                onclick="toggleAccordion('acc3')">
+                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
+                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
+                                Protected Branch restrictions in GitHub
+                            </span>
+                            <span id="acc3-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
+                        </button>
+                        <div id="acc3" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
+                            Ensure the personal access token belongs to a collaborator who has bypass/write privileges for any branch protection rules enforced on your main branch.
+                        </div>
+                    </div>
                 </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-surface w-full py-4 mt-auto border-t border-outline-variant">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-primary text-sm">GuardianAgent</span>
+                <span class="text-on-surface-variant text-[10px]">© 2026 GuardianAgent. All rights reserved.</span>
+            </div>
+            <div class="flex gap-4 text-[10px] text-on-surface-variant">
+                <a class="hover:text-secondary transition-colors" href="#">Privacy Policy</a>
+                <a class="hover:text-secondary transition-colors" href="#">Terms of Service</a>
+                <a class="hover:text-secondary transition-colors" href="#">Security</a>
+                <a class="hover:text-secondary transition-colors" href="#">Support</a>
             </div>
         </div>
-    </main>
+    </footer>
 
     <script>
-        function copySnippet() {
-            const code = document.getElementById('yamlSnippet').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                alert('YAML snippet copied to clipboard!');
-            }).catch(err => {
+        function scrollToStep(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function toggleAccordion(id) {
+            const acc = document.getElementById(id);
+            const arrow = document.getElementById(id + '-arrow');
+            if (acc) {
+                acc.classList.toggle('hidden');
+                if (arrow) {
+                    arrow.classList.toggle('rotate-180');
+                }
+            }
+        }
+
+        async function copyText(text, btn) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const icon = btn.querySelector('.material-symbols-outlined');
+                const origText = btn.innerHTML;
+                
+                if (icon) {
+                    icon.textContent = 'check';
+                    btn.classList.add('copy-success');
+                    setTimeout(() => {
+                        icon.textContent = 'content_copy';
+                        btn.classList.remove('copy-success');
+                    }, 2000);
+                } else {
+                    btn.innerText = 'Copied!';
+                    setTimeout(() => {
+                        btn.innerHTML = origText;
+                    }, 2000);
+                }
+            } catch (err) {
                 console.error('Copy failed: ', err);
-            });
+            }
         }
     </script>
 </body>

@@ -1019,6 +1019,16 @@ class MCPHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urllib.parse.urlparse(self.path)
+        # Health check endpoint for Cloud Run startup probe
+        if parsed_path.path == "/" or parsed_path.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            body = json.dumps({"status": "ok", "service": "guardian-mcp-runner"}).encode("utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed_path.path == "/sse":
             session_id = str(uuid.uuid4())
             self.send_response(200)

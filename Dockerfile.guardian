@@ -24,9 +24,8 @@ COPY web/ ./web/
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Expose SSE port if running in SSE MCP mode
+# Expose SSE port
 EXPOSE 8000
 
-# Default command runs in stdio MCP mode
-ENTRYPOINT ["python", "guardian.py"]
-CMD ["--mcp-stdio"]
+# Run in SSE MCP mode by default for Cloud Run
+CMD ["python", "guardian.py", "--mcp-sse", "--mcp-port", "8000"]

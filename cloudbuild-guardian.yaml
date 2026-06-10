@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'Dockerfile.guardian', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/guardian-repo/python-runner:latest', '.']
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/guardian-repo/python-runner:latest'

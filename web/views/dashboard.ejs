@@ -167,15 +167,17 @@
                 </div>
                 
                 <!-- Repo Selection Pills -->
-                <div class="flex border border-outline-variant bg-background p-1 rounded-xl">
-                    <button onclick="switchRepo('SoftHive-group/Internal-Tools')" id="repo-softhive" 
-                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 bg-primary text-white cursor-pointer shadow-sm">
-                        SoftHive-group/Internal-Tools
-                    </button>
-                    <button onclick="switchRepo('Guardian-Shield/Web-Portal')" id="repo-guardian" 
-                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 text-on-surface-variant hover:text-primary cursor-pointer">
-                        Guardian-Shield/Web-Portal
-                    </button>
+                <div class="flex flex-wrap border border-outline-variant bg-background p-1 rounded-xl" id="repoPillsContainer">
+                    <% if (activeRepos && activeRepos.length > 0) { %>
+                        <% activeRepos.forEach((repo, idx) => { %>
+                            <button onclick="switchRepo('<%= repo %>')" 
+                                    class="repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer <%= idx === 0 ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-primary' %>">
+                                <%= repo %>
+                            </button>
+                        <% }); %>
+                    <% } else { %>
+                        <span class="text-[10px] text-on-surface-variant font-bold uppercase p-2">No active repositories connected.</span>
+                    <% } %>
                 </div>
             </div>
 
@@ -418,19 +420,14 @@
         }
 
         function switchRepo(repoName) {
-            const btnSoftHive = document.getElementById('repo-softhive');
-            const btnGuardian = document.getElementById('repo-guardian');
-
-            const activeClass = 'bg-primary text-white shadow-sm';
-            const inactiveClass = 'text-on-surface-variant hover:text-primary';
-
-            if (repoName === 'SoftHive-group/Internal-Tools') {
-                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${activeClass} cursor-pointer`;
-                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${inactiveClass} cursor-pointer`;
-            } else {
-                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${activeClass} cursor-pointer`;
-                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${inactiveClass} cursor-pointer`;
-            }
+            const pills = document.querySelectorAll('.repo-pill');
+            pills.forEach(pill => {
+                if (pill.textContent.trim() === repoName) {
+                    pill.className = 'repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer bg-primary text-white shadow-sm';
+                } else {
+                    pill.className = 'repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-primary';
+                }
+            });
 
             // Populate terminal logs corresponding to active repo
             populateLogs(repoName);
@@ -611,8 +608,11 @@
                 });
         }
 
+        const activeRepos = <%- JSON.stringify(activeRepos || []) %>;
         document.addEventListener('DOMContentLoaded', () => {
-            switchRepo('SoftHive-group/Internal-Tools');
+            if (activeRepos && activeRepos.length > 0) {
+                switchRepo(activeRepos[0]);
+            }
         });
     </script>
 </body>

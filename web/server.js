@@ -186,37 +186,23 @@ app.get('/dashboard', checkAuth, (req, res) => {
                     return res.status(500).send('Internal Server Error');
                 }
 
-                // Determine if using demo mode or live mode
-                const isDemoMode = userScans.length === 0;
-
-                if (isDemoMode) {
-                    // Fetch default demo scans
-                    db.all('SELECT * FROM scans WHERE user_id IS NULL ORDER BY created_at DESC', (err3, demoScans) => {
-                        if (err3) {
-                            console.error('DB error fetching demo scans:', err3);
-                            return res.status(500).send('Internal Server Error');
-                        }
-                        res.render('dashboard', {
-                            userEmail,
-                            userId,
-                            guardianUserId,
-                            scans: demoScans,
-                            isDemoMode: true,
-                            activeTab: 'dashboard',
-                            currentPath: '/dashboard'
-                        });
-                    });
-                } else {
+                db.all('SELECT repo_name FROM user_repos WHERE user_id = ? AND is_active = 1', [userId], (errRepos, activeRepos) => {
+                    if (errRepos) {
+                        console.error('DB error fetching user repos:', errRepos);
+                        return res.status(500).send('Internal Server Error');
+                    }
+                    const repos = activeRepos ? activeRepos.map(r => r.repo_name) : [];
                     res.render('dashboard', {
                         userEmail,
                         userId,
                         guardianUserId,
                         scans: userScans,
+                        activeRepos: repos,
                         isDemoMode: false,
                         activeTab: 'dashboard',
                         currentPath: '/dashboard'
                     });
-                }
+                });
             });
         });
     });
@@ -234,13 +220,148 @@ app.get('/setup/gitlab', checkAuth, (req, res) => {
         }
 
         getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
+            const hasGitlabToken = user && user.gitlab_token ? true : false;
             res.render('gitlab', {
                 userEmail,
                 guardianUserId,
+                hasGitlabToken,
                 activeTab: 'gitlab',
                 currentPath: '/setup/gitlab'
             });
         });
+    });
+});
+
+// POST Settings Update GitLab configuration
+app.post('/settings/update-gitlab', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { gitlab_token } = req.body;
+
+    if (!gitlab_token) {
+        return res.status(400).send('GitLab Token cannot be empty.');
+    }
+
+    if (gitlab_token === 'disconnect') {
+        db.run(
+            'UPDATE users SET gitlab_token = NULL WHERE id = ?',
+            [userId],
+            function (err) {
+                if (err) {
+                    console.error('DB error disconnecting GitLab:', err);
+                    return res.status(500).send('Failed to disconnect.');
+                }
+                res.redirect('/setup/gitlab?disconnected=true');
+            }
+        );
+    } else {
+        const encryptedToken = encrypt(gitlab_token);
+        db.run(
+            'UPDATE users SET gitlab_token = ? WHERE id = ?',
+            [encryptedToken, userId],
+            function (err) {
+                if (err) {
+                    console.error('DB error updating GitLab token:', err);
+                    return res.status(500).send('Failed to save configuration.');
+                }
+                res.redirect('/setup/gitlab?updated=true');
+            }
+        );
+    }
+});
+
+// GET API to fetch user's GitLab projects
+app.get('/api/gitlab/projects', checkAuth, async (req, res) => {
+    const userId = req.session.userId;
+
+    db.get('SELECT gitlab_token FROM users WHERE id = ?', [userId], async (err, user) => {
+        if (err || !user || !user.gitlab_token) {
+            return res.status(400).json({ error: 'GitLab account is not connected yet.' });
+        }
+
+        const token = decrypt(user.gitlab_token);
+        if (!token) {
+            return res.status(500).json({ error: 'Failed to decrypt GitLab token.' });
+        }
+
+        try {
+            const fetchRes = await fetch('https://gitlab.com/api/v4/projects?membership=true&min_access_level=30&simple=true&per_page=100', {
+                headers: {
+                    'PRIVATE-TOKEN': token
+                }
+            });
+
+            if (!fetchRes.ok) {
+                return res.status(fetchRes.status).json({ error: 'Failed to retrieve projects from GitLab API.' });
+            }
+
+            const projects = await fetchRes.json();
+
+            // Fetch active repositories for this user from database
+            db.all('SELECT repo_name, is_active FROM user_repos WHERE user_id = ?', [userId], (err2, activeRepos) => {
+                if (err2) {
+                    console.error('DB error fetching user repos:', err2);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+
+                const activeSet = new Set(activeRepos.filter(r => r.is_active === 1).map(r => r.repo_name));
+                const projectsWithStatus = projects.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    path_with_namespace: p.path_with_namespace,
+                    web_url: p.web_url,
+                    is_active: activeSet.has(p.path_with_namespace)
+                }));
+
+                res.json({ success: true, projects: projectsWithStatus });
+            });
+
+        } catch (ex) {
+            console.error('Exception fetching GitLab projects:', ex);
+            res.status(500).json({ error: 'Internal Server Error fetching GitLab projects.' });
+        }
+    });
+});
+
+// POST API to toggle active repository status
+app.post('/api/gitlab/toggle-repo', checkAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { repo_name, repo_id, is_active } = req.body;
+
+    if (!repo_name) {
+        return res.status(400).json({ error: 'Repository name is required.' });
+    }
+
+    const isActiveVal = is_active ? 1 : 0;
+
+    db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (err, row) => {
+        if (err) {
+            console.error('DB error finding repo:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (row) {
+            db.run(
+                'UPDATE user_repos SET is_active = ? WHERE id = ?',
+                [isActiveVal, row.id],
+                function (errUp) {
+                    if (errUp) {
+                        return res.status(500).json({ error: 'Failed to update repository status.' });
+                    }
+                    res.json({ success: true, is_active: isActiveVal === 1 });
+                }
+            );
+        } else {
+            db.run(
+                'INSERT INTO user_repos (user_id, repo_name, repo_id, is_active) VALUES (?, ?, ?, ?)',
+                [userId, repo_name, repo_id || null, isActiveVal],
+                function (errIn) {
+                    if (errIn) {
+                        return res.status(500).json({ error: 'Failed to connect repository.' });
+                    }
+                    res.json({ success: true, is_active: isActiveVal === 1 });
+                }
+            );
+        }
     });
 });
 
@@ -427,88 +548,97 @@ app.post('/api/scans/:id/approve', checkAuth, async (req, res) => {
             return res.status(400).json({ error: 'This finding is not pending approval.' });
         }
 
-        const gitlabToken = process.env.GITLAB_TOKEN;
-        if (!gitlabToken) {
-            console.error('Server GITLAB_TOKEN is not configured.');
-            return res.status(500).json({ error: 'Server is missing GITLAB_TOKEN configuration.' });
-        }
-
-        const projectId = encodeURIComponent(scan.repo_name);
-        const fileSlug = scan.file.replace(/[^a-zA-Z0-9]/g, '_');
-        const branchName = `guardian/remediate-${fileSlug}_${scan.line}`;
-        const filePathEncoded = encodeURIComponent(scan.file);
-
-        try {
-            // 1. Fetch raw file content from GitLab branch
-            const fetchUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${filePathEncoded}/raw?ref=${branchName}`;
-            const fetchRes = await makeHttpsRequest(fetchUrl, {
-                headers: { 'PRIVATE-TOKEN': gitlabToken }
-            });
-
-            if (fetchRes.statusCode !== 200) {
-                console.error(`Failed to fetch file from GitLab. Status: ${fetchRes.statusCode}, Data: ${fetchRes.data}`);
-                return res.status(fetchRes.statusCode).json({ error: 'Failed to fetch file content from GitLab branch.' });
+        db.get('SELECT gitlab_token FROM users WHERE id = ?', [userId], async (errUser, user) => {
+            let gitlabToken = null;
+            if (user && user.gitlab_token) {
+                gitlabToken = decrypt(user.gitlab_token);
+            }
+            if (!gitlabToken) {
+                gitlabToken = process.env.GITLAB_TOKEN;
             }
 
-            const currentContent = fetchRes.data;
-            const originalClean = scan.original_code.replace(/\r\n/g, '\n');
-            const correctedClean = scan.corrected_code.replace(/\r\n/g, '\n');
-
-            if (!currentContent.replace(/\r\n/g, '\n').includes(originalClean)) {
-                return res.status(409).json({ error: 'Vulnerable code block not found in current file content. The file may have changed.' });
+            if (!gitlabToken) {
+                console.error('Server GITLAB_TOKEN is not configured.');
+                return res.status(500).json({ error: 'Server is missing GitLab token configuration.' });
             }
 
-            // Replace original with corrected in content
-            const updatedContent = currentContent.replace(originalClean, correctedClean);
+            const projectId = encodeURIComponent(scan.repo_name);
+            const fileSlug = scan.file.replace(/[^a-zA-Z0-9]/g, '_');
+            const branchName = `guardian/remediate-${fileSlug}_${scan.line}`;
+            const filePathEncoded = encodeURIComponent(scan.file);
 
-            // 2. Commit the changes back to GitLab Commits API
-            const commitUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/commits`;
-            const commitPayload = JSON.stringify({
-                branch: branchName,
-                commit_message: `fix(security): remediate ${scan.vulnerability} at line ${scan.line} [skip ci]`,
-                actions: [
-                    {
-                        action: 'update',
-                        file_path: scan.file,
-                        content: updatedContent
-                    }
-                ]
-            });
+            try {
+                // 1. Fetch raw file content from GitLab branch
+                const fetchUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/files/${filePathEncoded}/raw?ref=${branchName}`;
+                const fetchRes = await makeHttpsRequest(fetchUrl, {
+                    headers: { 'PRIVATE-TOKEN': gitlabToken }
+                });
 
-            const commitRes = await makeHttpsRequest(commitUrl, {
-                method: 'POST',
-                headers: {
-                    'PRIVATE-TOKEN': gitlabToken,
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(commitPayload)
+                if (fetchRes.statusCode !== 200) {
+                    console.error(`Failed to fetch file from GitLab. Status: ${fetchRes.statusCode}, Data: ${fetchRes.data}`);
+                    return res.status(fetchRes.statusCode).json({ error: 'Failed to fetch file content from GitLab branch.' });
                 }
-            }, commitPayload);
 
-            if (commitRes.statusCode !== 201) {
-                console.error(`Failed to commit changes. Status: ${commitRes.statusCode}, Data: ${commitRes.data}`);
-                return res.status(commitRes.statusCode).json({ error: 'Failed to commit security patch back to GitLab.' });
-            }
+                const currentContent = fetchRes.data;
+                const originalClean = scan.original_code.replace(/\r\n/g, '\n');
+                const correctedClean = scan.corrected_code.replace(/\r\n/g, '\n');
 
-            const commitData = JSON.parse(commitRes.data);
-            const commitSha = commitData.id;
-
-            // 3. Update status in database
-            db.run(
-                'UPDATE scans SET status = ?, commit_sha = ? WHERE id = ?',
-                ['✅ Patched & Approved via Console', commitSha, scanId],
-                (errUp) => {
-                    if (errUp) {
-                        console.error('Failed to update scan status in DB:', errUp);
-                        return res.status(500).json({ error: 'Failed to update scan status in database.' });
-                    }
-                    res.json({ success: true, commit_sha: commitSha });
+                if (!currentContent.replace(/\r\n/g, '\n').includes(originalClean)) {
+                    return res.status(409).json({ error: 'Vulnerable code block not found in current file content. The file may have changed.' });
                 }
-            );
 
-        } catch (ex) {
-            console.error('Exception during approval execution:', ex);
-            res.status(500).json({ error: 'Internal Server Error during patch approval.' });
-        }
+                // Replace original with corrected in content
+                const updatedContent = currentContent.replace(originalClean, correctedClean);
+
+                // 2. Commit the changes back to GitLab Commits API
+                const commitUrl = `https://gitlab.com/api/v4/projects/${projectId}/repository/commits`;
+                const commitPayload = JSON.stringify({
+                    branch: branchName,
+                    commit_message: `fix(security): remediate ${scan.vulnerability} at line ${scan.line} [skip ci]`,
+                    actions: [
+                        {
+                            action: 'update',
+                            file_path: scan.file,
+                            content: updatedContent
+                        }
+                    ]
+                });
+
+                const commitRes = await makeHttpsRequest(commitUrl, {
+                    method: 'POST',
+                    headers: {
+                        'PRIVATE-TOKEN': gitlabToken,
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(commitPayload)
+                    }
+                }, commitPayload);
+
+                if (commitRes.statusCode !== 201) {
+                    console.error(`Failed to commit changes. Status: ${commitRes.statusCode}, Data: ${commitRes.data}`);
+                    return res.status(commitRes.statusCode).json({ error: 'Failed to commit security patch back to GitLab.' });
+                }
+
+                const commitData = JSON.parse(commitRes.data);
+                const commitSha = commitData.id;
+
+                // 3. Update status in database
+                db.run(
+                    'UPDATE scans SET status = ?, commit_sha = ? WHERE id = ?',
+                    ['✅ Patched & Approved via Console', commitSha, scanId],
+                    (errUp) => {
+                        if (errUp) {
+                            console.error('Failed to update scan status in DB:', errUp);
+                            return res.status(500).json({ error: 'Failed to update scan status in database.' });
+                        }
+                        res.json({ success: true, commit_sha: commitSha });
+                    }
+                );
+
+            } catch (ex) {
+                console.error('Exception during approval execution:', ex);
+                res.status(500).json({ error: 'Internal Server Error during patch approval.' });
+            }
+        });
     });
 });
 
@@ -557,13 +687,19 @@ app.post('/api/scans/trigger', (req, res) => {
 
         const gcpProjectId = process.env.GCP_PROJECT_ID;
         const gcpLocation = process.env.GCP_LOCATION || 'us-central1';
-        const gitlabToken = process.env.GITLAB_TOKEN;
+        let gitlabToken = null;
+        if (user.gitlab_token) {
+            gitlabToken = decrypt(user.gitlab_token);
+        }
+        if (!gitlabToken) {
+            gitlabToken = process.env.GITLAB_TOKEN;
+        }
 
         if (!gcpProjectId) {
             return res.status(500).json({ error: 'Server GCP_PROJECT_ID is not configured.' });
         }
         if (!gitlabToken) {
-            return res.status(500).json({ error: 'Server GITLAB_TOKEN is not configured.' });
+            return res.status(500).json({ error: 'Server GitLab token is not configured.' });
         }
 
         const mcpUrl = process.env.GUARDIAN_MCP_URL || 'http://localhost:8000';

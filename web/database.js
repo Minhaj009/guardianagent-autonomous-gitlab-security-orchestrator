@@ -52,9 +52,25 @@ db.serialize(() => {
     db.run("ALTER TABLE scans ADD COLUMN corrected_code TEXT", (err) => {
         // Safe to ignore if column already exists
     });
-    db.run("ALTER TABLE scans ADD COLUMN commit_sha TEXT", (err) => {
+    db.run("ALTER TABLE users ADD COLUMN commit_sha TEXT", (err) => {
         // Safe to ignore if column already exists
     });
+    db.run("ALTER TABLE users ADD COLUMN gitlab_token TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+
+    // Create user_repos table for storing repository connections
+    db.run(`
+        CREATE TABLE IF NOT EXISTS user_repos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            repo_name TEXT NOT NULL,
+            repo_id INTEGER,
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    `);
 
 
     // 2. Create scans table for storing findings

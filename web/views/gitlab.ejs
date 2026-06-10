@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>GuardianAgent - GitLab Integration Setup</title>
+    <title>GuardianAgent - GitLab Repository Connections</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet"/>
@@ -42,9 +42,6 @@
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
-        .copy-success {
-            color: #375561 !important;
-        }
     </style>
 </head>
 <body class="bg-background text-on-surface font-body-md min-h-screen flex flex-col antialiased">
@@ -59,10 +56,10 @@
                     <span class="text-[10px] border border-outline text-primary px-1.5 py-0.5 ml-2 font-mono uppercase font-bold rounded">v1.0.0</span>
                 </div>
                 <nav class="hidden md:flex items-center gap-6 ml-4">
-                    <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/dashboard' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                    <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 text-on-surface-variant hover:text-primary rounded-lg cursor-pointer">
                         Review Dashboard
                     </a>
-                    <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/gitlab' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                    <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 bg-surface-dim text-primary rounded-lg cursor-pointer">
                         GitLab Setup
                     </a>
                 </nav>
@@ -80,148 +77,80 @@
         </div>
     </header>
 
-    <!-- Main Content Grid -->
-    <div class="flex-1 flex max-w-7xl mx-auto w-full px-6 py-10 gap-8 relative">
-        
-        <!-- Left Side Stepper Navigation -->
-        <aside class="hidden md:block w-1/4 pr-4 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto">
-            <div class="mb-8">
-                <h2 class="text-lg font-bold text-primary">Onboarding</h2>
-                <p class="text-on-surface-variant text-[10px] uppercase tracking-wider font-semibold mt-1">GitLab CI Setup Guide</p>
-            </div>
-            <nav class="flex flex-col gap-4 relative">
-                <!-- Vertical Connector Line -->
-                <div class="absolute left-3.5 top-8 bottom-8 w-px bg-outline-variant -z-10"></div>
-                
-                <!-- Step 1 -->
-                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step1')">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-surface shadow-sm">
-                        <span class="text-white text-xs font-bold font-mono">1</span>
-                    </div>
-                    <div class="pt-1">
-                        <span class="block text-primary font-bold text-xs uppercase tracking-wider group-hover:underline">CI/CD Variables</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Secret keys in GitLab</p>
-                    </div>
-                </a>
+    <!-- Main Content -->
+    <main class="flex-1 max-w-4xl mx-auto w-full px-6 py-10 space-y-10">
+        <header class="mb-4">
+            <h1 class="text-3xl font-bold text-primary mb-2">GitLab Account Integration</h1>
+            <p class="text-on-surface-variant text-sm leading-relaxed">
+                Securely connect your GitLab account, list repositories, and enable Guardian agent scan orchestrations with a single click.
+            </p>
+        </header>
 
-                <!-- Step 2 -->
-                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step2')">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
-                        <span class="text-on-surface-variant group-hover:text-primary text-xs font-bold font-mono">2</span>
-                    </div>
-                    <div class="pt-1">
-                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">CI Pipeline File</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Define .gitlab-ci.yml job</p>
-                    </div>
-                </a>
-
-                <!-- Troubleshooting -->
-                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('trouble')">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
-                        <span class="material-symbols-outlined text-outline-variant group-hover:text-primary text-sm">build</span>
-                    </div>
-                    <div class="pt-1">
-                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">Troubleshooting</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Resolve configuration issues</p>
-                    </div>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Main Guide Canvas -->
-        <main class="w-full md:w-3/4 pb-12 space-y-10">
-            <header class="mb-4">
-                <h1 class="text-3xl font-bold text-primary mb-2">GitLab CI Integration Setup Guide</h1>
-                <p class="text-on-surface-variant text-sm max-w-3xl leading-relaxed">
-                    Connect your GitLab repositories to GuardianAgent. This provides a secure scan context using hosted analysis resources entirely.
-                </p>
-            </header>
-
-            <!-- Step 1: CI/CD Variables -->
-            <section id="step1" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
-                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
-                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">1</div>
-                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Configure GitLab CI/CD Variables</h2>
+        <% if (!hasGitlabToken) { %>
+            <!-- Connect Token Form -->
+            <section class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-primary uppercase tracking-wider">Connect GitLab Account</h2>
+                    <p class="text-on-surface-variant text-xs mt-1">Provide a GitLab Personal Access Token to link your project repositories.</p>
                 </div>
-                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
-                    <p>
-                        Navigate to your GitLab project's **Settings** > **CI/CD**, expand **Variables**, and configure:
-                    </p>
-                    <ul class="list-disc list-outside ml-5 space-y-2.5">
-                        <li><strong>GITLAB_TOKEN</strong>: An Access Token with <code class="font-mono">api, read_repository, write_repository</code> scopes. Set <span class="text-primary font-bold">Masked: Enabled</span> and <span class="text-secondary font-bold">Protected: Disabled</span>.</li>
-                        <li><strong>GUARDIAN_USER_ID</strong>: Your unique portal account key:</li>
-                    </ul>
-                    
-                    <!-- User ID Container -->
-                    <div class="mt-3 flex items-center justify-between border border-outline-variant bg-background p-4 rounded-xl font-mono text-xs text-on-surface">
-                        <span>GUARDIAN_USER_ID: <strong class="text-secondary select-all"><%= guardianUserId %></strong></span>
-                        <button onclick="copyText('<%= guardianUserId %>', this)" 
-                                class="px-4 py-2 bg-secondary hover:opacity-90 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm">
-                            <span class="material-symbols-outlined text-[12px]">content_copy</span> Copy ID
+
+                <form action="/settings/update-gitlab" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Personal Access Token (PAT)</label>
+                        <input type="password" name="gitlab_token" required placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+                               class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-mono">
+                    </div>
+                    <div class="text-[11px] text-on-surface-variant leading-relaxed">
+                        💡 To create a token, visit your <a href="https://gitlab.com/-/profile/personal_access_tokens" target="_blank" class="text-secondary hover:underline font-semibold">GitLab PAT Settings</a> and create a token with scopes: <code class="bg-background px-1 rounded font-mono">api</code>, <code class="bg-background px-1 rounded font-mono">read_repository</code>, and <code class="bg-background px-1 rounded font-mono">write_repository</code>.
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="px-6 py-2.5 bg-secondary hover:opacity-90 text-white text-xs font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all shadow-sm flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">link</span>
+                            Link GitLab Account
                         </button>
                     </div>
-                </div>
+                </form>
             </section>
-
-            <!-- Step 2: CI Pipeline File -->
-            <section id="step2" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
-                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
-                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">2</div>
-                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Integrate .gitlab-ci.yml Job</h2>
-                </div>
-                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
-                    <p>
-                        Open your repository's <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">.gitlab-ci.yml</code> and add the following job block configuration to your pipeline setup:
-                    </p>
-                    
-                    <!-- Copy Code Block -->
-                    <div class="relative group mt-4">
-                        <button class="absolute right-2 top-2 bg-surface border border-outline-variant hover:border-primary rounded-md p-1.5 transition-colors cursor-pointer"
-                                onclick="copyText(document.getElementById('yamlSnippet').innerText, this)" title="Copy configuration snippet">
-                            <span class="material-symbols-outlined text-sm block">content_copy</span>
-                        </button>
-                        <pre id="yamlSnippet" class="bg-slate-950 text-slate-100 rounded-lg p-5 font-mono text-[11px] overflow-x-auto leading-relaxed max-h-[350px]">stages:
-  - test
-
-security-scan:
-  stage: test
-  image: curlimages/curl:latest
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-  script:
-    - curl -X POST -H "Content-Type: application/json" -d "{\"repo_name\":\"$CI_PROJECT_PATH\", \"mr_iid\":$CI_MERGE_REQUEST_IID, \"guardian_user_id\":\"$GUARDIAN_USER_ID\"}" http://localhost:3000/api/scans/trigger
-  variables:
-    GUARDIAN_USER_ID: "<%= guardianUserId %>"</pre>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Troubleshooting Section -->
-            <section id="trouble" class="scroll-mt-20">
-                <h2 class="text-lg font-bold text-primary mb-4 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">build</span>
-                    Troubleshooting Configuration Issues
-                </h2>
-                
-                <div class="border border-outline-variant rounded-xl overflow-hidden bg-surface shadow-sm">
-                    <!-- Item 1 -->
-                    <div class="border-b border-outline-variant last:border-b-0">
-                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
-                                onclick="toggleAccordion('acc3')">
-                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
-                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
-                                CI Pipeline variable protection rules
-                            </span>
-                            <span id="acc3-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
-                        </button>
-                        <div id="acc3" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
-                            Ensure the <code class="font-mono bg-background px-1 rounded">GUARDIAN_USER_ID</code> and <code class="font-mono bg-background px-1 rounded">GITLAB_TOKEN</code> variables in GitLab are NOT marked as **Protected** unless you run reviews solely on protected main/release branches.
+        <% } else { %>
+            <!-- Connected View & Repository Selector -->
+            <section class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm space-y-6">
+                <div class="flex items-center justify-between border-b border-outline-variant/30 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-300 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-full">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            <span>Connected</span>
                         </div>
+                        <h2 class="text-lg font-bold text-primary uppercase tracking-wider">Your GitLab Repositories</h2>
+                    </div>
+                    <form action="/settings/update-gitlab" method="POST" onsubmit="return confirm('Disconnecting will prevent scans from authenticating. Continue?')">
+                        <input type="hidden" name="gitlab_token" value="disconnect">
+                        <button type="submit" class="text-[10px] text-secondary hover:underline uppercase font-bold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs">link_off</span> Disconnect Account
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Repo search & dynamic list -->
+                <div class="space-y-4">
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3.5 top-2.5 text-outline text-sm">search</span>
+                        <input type="text" id="repoSearch" oninput="filterRepos()" placeholder="Search repositories..."
+                               class="w-full pl-10 bg-background border border-outline-variant rounded-lg text-on-surface text-xs py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-semibold">
+                    </div>
+
+                    <!-- Loader -->
+                    <div id="repoLoader" class="flex justify-center items-center py-12">
+                        <span class="material-symbols-outlined animate-spin text-primary text-3xl">sync</span>
+                    </div>
+
+                    <!-- List Container -->
+                    <div id="repoListContainer" class="hidden border border-outline-variant rounded-xl overflow-hidden divide-y divide-outline-variant bg-surface">
+                        <!-- Dynamically populated -->
                     </div>
                 </div>
             </section>
-        </main>
-    </div>
+        <% } %>
+    </main>
 
     <!-- Footer -->
     <footer class="bg-surface w-full py-4 mt-auto border-t border-outline-variant">
@@ -230,57 +159,129 @@ security-scan:
                 <span class="font-bold text-primary text-sm">GuardianAgent</span>
                 <span class="text-on-surface-variant text-[10px]">© 2026 GuardianAgent. All rights reserved.</span>
             </div>
-            <div class="flex gap-4 text-[10px] text-on-surface-variant">
-                <a class="hover:text-secondary transition-colors" href="#">Privacy Policy</a>
-                <a class="hover:text-secondary transition-colors" href="#">Terms of Service</a>
-                <a class="hover:text-secondary transition-colors" href="#">Security</a>
-                <a class="hover:text-secondary transition-colors" href="#">Support</a>
-            </div>
         </div>
     </footer>
 
     <script>
-        function scrollToStep(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
+        let allProjects = [];
 
-        function toggleAccordion(id) {
-            const acc = document.getElementById(id);
-            const arrow = document.getElementById(id + '-arrow');
-            if (acc) {
-                acc.classList.toggle('hidden');
-                if (arrow) {
-                    arrow.classList.toggle('rotate-180');
-                }
-            }
-        }
+        async function loadRepositories() {
+            const loader = document.getElementById('repoLoader');
+            const container = document.getElementById('repoListContainer');
+            if (!container) return; // not connected state
 
-        async function copyText(text, btn) {
             try {
-                await navigator.clipboard.writeText(text);
-                const icon = btn.querySelector('.material-symbols-outlined');
-                const origText = btn.innerHTML;
+                const response = await fetch('/api/gitlab/projects');
+                const data = await response.json();
                 
-                if (icon) {
-                    icon.textContent = 'check';
-                    btn.classList.add('copy-success');
-                    setTimeout(() => {
-                        icon.textContent = 'content_copy';
-                        btn.classList.remove('copy-success');
-                    }, 2000);
+                loader.classList.add('hidden');
+                container.classList.remove('hidden');
+
+                if (response.ok && data.success) {
+                    allProjects = data.projects;
+                    renderProjects(allProjects);
                 } else {
-                    btn.innerText = 'Copied!';
-                    setTimeout(() => {
-                        btn.innerHTML = origText;
-                    }, 2000);
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-xs font-semibold text-secondary uppercase">
+                            ❌ ${data.error || 'Failed to retrieve projects.'}
+                        </div>
+                    `;
                 }
-            } catch (err) {
-                console.error('Copy failed: ', err);
+            } catch (ex) {
+                console.error('Error fetching repos:', ex);
+                loader.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="p-6 text-center text-xs font-semibold text-secondary uppercase">
+                        ❌ Connection failure fetching projects.
+                    </div>
+                `;
             }
         }
+
+        function renderProjects(projects) {
+            const container = document.getElementById('repoListContainer');
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-xs text-on-surface-variant font-medium">
+                        No repositories found in your account.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = projects.map(p => `
+                <div class="flex justify-between items-center p-4 hover:bg-background/20 transition-colors" data-name="${p.path_with_namespace.toLowerCase()}">
+                    <div class="space-y-0.5">
+                        <a href="${p.web_url}" target="_blank" class="font-bold text-primary text-xs hover:underline flex items-center gap-1.5">
+                            ${p.path_with_namespace}
+                            <span class="material-symbols-outlined text-[10px]">open_in_new</span>
+                        </a>
+                        <p class="text-[10px] text-on-surface-variant font-medium font-mono">ID: ${p.id}</p>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" onchange="toggleProject('${p.path_with_namespace}', ${p.id}, this)" ${p.is_active ? 'checked' : ''} class="sr-only peer">
+                            <div class="w-9 h-5 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-container"></div>
+                            <span class="ml-2.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant peer-checked:text-primary">
+                                ${p.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterRepos() {
+            const query = document.getElementById('repoSearch').value.toLowerCase().trim();
+            const items = document.querySelectorAll('#repoListContainer > div');
+            items.forEach(item => {
+                const name = item.getAttribute('data-name');
+                if (name && name.includes(query)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+        }
+
+        async function toggleProject(repoName, repoId, checkbox) {
+            const labelSpan = checkbox.nextElementSibling.nextElementSibling;
+            checkbox.disabled = true;
+
+            try {
+                const response = await fetch('/api/gitlab/toggle-repo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        repo_name: repoName,
+                        repo_id: repoId,
+                        is_active: checkbox.checked
+                    })
+                });
+                const data = await response.json();
+                checkbox.disabled = false;
+
+                if (response.ok && data.success) {
+                    checkbox.checked = data.is_active;
+                    if (labelSpan) {
+                        labelSpan.textContent = data.is_active ? 'Active' : 'Inactive';
+                    }
+                } else {
+                    checkbox.checked = !checkbox.checked;
+                    alert('Failed to update repository status.');
+                }
+            } catch (ex) {
+                console.error(ex);
+                checkbox.disabled = false;
+                checkbox.checked = !checkbox.checked;
+                alert('Connection failure updating repository status.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRepositories();
+        });
     </script>
 </body>
 </html>

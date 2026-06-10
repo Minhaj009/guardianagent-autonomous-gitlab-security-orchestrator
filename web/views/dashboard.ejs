@@ -504,11 +504,11 @@
                                 <div class="mt-4 border border-outline-variant rounded-xl p-3 bg-slate-950 text-[10px] font-mono leading-tight overflow-x-auto text-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div class="text-red-400 border-r border-slate-800 pr-2">
                                         <span class="font-bold block uppercase tracking-wider text-[8px] opacity-75 mb-1 text-red-500">Vulnerable Code (Original)</span>
-                                        <pre class="bg-red-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-red-900/30">\${escapeHtml(s.original_code)}</pre>
+                                        <pre class="bg-red-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-red-900/30">${escapeHtml(s.original_code)}</pre>
                                     </div>
                                     <div class="text-emerald-400 pl-2">
                                         <span class="font-bold block uppercase tracking-wider text-[8px] opacity-75 mb-1 text-emerald-500">Secure Patch (Remediated)</span>
-                                        <pre class="bg-emerald-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-emerald-900/30">\${escapeHtml(s.corrected_code)}</pre>
+                                        <pre class="bg-emerald-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-emerald-900/30">${escapeHtml(s.corrected_code)}</pre>
                                     </div>
                                 </div>
                             `;
@@ -518,11 +518,11 @@
                         if (isPending) {
                             actionsHtml = `
                                 <div class="flex items-center gap-2">
-                                    <button onclick="approveScan(\${s.id}, event)" 
+                                    <button onclick="approveScan(${s.id}, event)" 
                                             class="bg-primary hover:opacity-90 text-white font-bold uppercase tracking-wider text-[9px] px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
                                         <span class="material-symbols-outlined text-[12px]">done</span> Approve & Commit
                                     </button>
-                                    <button onclick="rejectScan(\${s.id})" 
+                                    <button onclick="rejectScan(${s.id})" 
                                             class="border border-secondary text-secondary hover:bg-secondary/10 font-bold uppercase tracking-wider text-[9px] px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
                                         <span class="material-symbols-outlined text-[12px]">close</span> Reject
                                     </button>
@@ -530,7 +530,7 @@
                             `;
                         } else {
                             actionsHtml = `
-                                <a href="\${branchUrl}" target="_blank" 
+                                <a href="${branchUrl}" target="_blank" 
                                    class="bg-surface border border-outline-variant hover:border-primary text-primary font-bold uppercase tracking-wider text-[10px] px-3.5 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[12px]">open_in_new</span> View Sub-Branch
                                 </a>
@@ -541,18 +541,18 @@
                             <div class="space-y-4">
                                 <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
                                     <span class="font-mono text-[11px] text-on-surface-variant bg-background px-2.5 py-1 border border-outline-variant rounded">
-                                        \${s.file}:L\${s.line}
+                                        ${s.file}:L${s.line}
                                     </span>
-                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border rounded \${scoreBadgeClass}">
-                                        Consensus: \${s.consensus_score}%
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border rounded ${scoreBadgeClass}">
+                                        Consensus: ${s.consensus_score}%
                                     </span>
                                 </div>
                                 
                                 <div>
-                                    <h4 class="font-bold text-primary text-sm tracking-tight">\${s.vulnerability}</h4>
-                                    <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">\${s.description}</p>
+                                    <h4 class="font-bold text-primary text-sm tracking-tight">${s.vulnerability}</h4>
+                                    <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">${s.description}</p>
                                 </div>
-                                \${diffHtml}
+                                ${diffHtml}
                             </div>
                             
                             <div class="space-y-4 mt-6">
@@ -567,41 +567,41 @@
                                         <div class="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-white"><span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check</span></div>
                                         <span class="text-[9px] font-bold text-primary">AI Review</span>
                                     </div>
-                                    <div class="h-px \${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
+                                    <div class="h-px ${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
                                     <div class="flex flex-col items-center gap-1">
-                                        <div class="w-4 h-4 rounded-full \${isPatched ? 'bg-primary flex items-center justify-center text-white' : (isPending ? 'bg-amber-500 flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface')}">
-                                            \${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : (isPending ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">pending</span>' : '')}
+                                        <div class="w-4 h-4 rounded-full ${isPatched ? 'bg-primary flex items-center justify-center text-white' : (isPending ? 'bg-amber-500 flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface')}">
+                                            ${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : (isPending ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">pending</span>' : '')}
                                         </div>
-                                        <span class="text-[9px] font-bold \${isPatched ? 'text-primary' : (isPending ? 'text-amber-500' : 'text-outline-variant')}">Patched</span>
+                                        <span class="text-[9px] font-bold ${isPatched ? 'text-primary' : (isPending ? 'text-amber-500' : 'text-outline-variant')}">Patched</span>
                                     </div>
-                                    <div class="h-px \${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
+                                    <div class="h-px ${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
                                     <div class="flex flex-col items-center gap-1">
-                                        <div class="w-4 h-4 rounded-full \${isPatched ? 'bg-primary flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface'}">
-                                            \${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : ''}
+                                        <div class="w-4 h-4 rounded-full ${isPatched ? 'bg-primary flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface'}">
+                                            ${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : ''}
                                         </div>
-                                        <span class="text-[9px] font-bold \${isPatched ? 'text-primary' : 'text-outline-variant'}">Pushed</span>
+                                        <span class="text-[9px] font-bold ${isPatched ? 'text-primary' : 'text-outline-variant'}">Pushed</span>
                                     </div>
                                 </div>
                                 
                                 <div class="flex items-center justify-between border-t border-outline-variant/30 pt-4">
                                     <div class="flex items-center gap-3">
                                         <div class="flex items-center border border-outline-variant bg-background rounded-lg p-0.5">
-                                            <button onclick="submitFeedback(\${s.id}, '\${s.feedback === 'up' ? '' : 'up'}')" 
-                                                    class="p-1 rounded transition-all duration-200 cursor-pointer \${s.feedback === 'up' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-primary'}" 
+                                            <button onclick="submitFeedback(${s.id}, '${s.feedback === 'up' ? '' : 'up'}')" 
+                                                    class="p-1 rounded transition-all duration-200 cursor-pointer ${s.feedback === 'up' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-primary'}" 
                                                     title="Helpful">
-                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' \${s.feedback === 'up' ? 1 : 0};">thumb_up</span>
+                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' ${s.feedback === 'up' ? 1 : 0};">thumb_up</span>
                                             </button>
-                                            <button onclick="submitFeedback(\${s.id}, '\${s.feedback === 'down' ? '' : 'down'}')" 
-                                                    class="p-1 border-l border-outline-variant rounded transition-all duration-200 cursor-pointer \${s.feedback === 'down' ? 'bg-secondary text-white' : 'text-on-surface-variant hover:text-primary'}" 
+                                            <button onclick="submitFeedback(${s.id}, '${s.feedback === 'down' ? '' : 'down'}')" 
+                                                    class="p-1 border-l border-outline-variant rounded transition-all duration-200 cursor-pointer ${s.feedback === 'down' ? 'bg-secondary text-white' : 'text-on-surface-variant hover:text-primary'}" 
                                                     title="Not Helpful">
-                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' \${s.feedback === 'down' ? 1 : 0};">thumb_down</span>
+                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' ${s.feedback === 'down' ? 1 : 0};">thumb_down</span>
                                             </button>
                                         </div>
-                                        <span class="text-[10px] \${statusClass}">
-                                            \${statusText}
+                                        <span class="text-[10px] ${statusClass}">
+                                            ${statusText}
                                         </span>
                                     </div>
-                                    \${actionsHtml}
+                                    ${actionsHtml}
                                 </div>
                             </div>
                         `;

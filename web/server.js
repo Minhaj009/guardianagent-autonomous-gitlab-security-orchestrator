@@ -179,11 +179,6 @@ app.get('/dashboard', checkAuth, (req, res) => {
         }
 
         getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
-            const gcpProjectId = user ? (user.gcp_project_id || '') : '';
-            const gcpLocation = user ? (user.gcp_location || '') : '';
-            const hasGcpCredentials = user && user.gcp_credentials ? true : false;
-            const autoRemediation = user ? (user.auto_remediation || 0) : 0;
-
             // Fetch user's own scans
             db.all('SELECT * FROM scans WHERE user_id = ? ORDER BY created_at DESC', [userId], (err2, userScans) => {
                 if (err2) {
@@ -205,10 +200,6 @@ app.get('/dashboard', checkAuth, (req, res) => {
                             userEmail,
                             userId,
                             guardianUserId,
-                            gcpProjectId,
-                            gcpLocation,
-                            hasGcpCredentials,
-                            autoRemediation,
                             scans: demoScans,
                             isDemoMode: true,
                             activeTab: 'dashboard',
@@ -220,38 +211,12 @@ app.get('/dashboard', checkAuth, (req, res) => {
                         userEmail,
                         userId,
                         guardianUserId,
-                        gcpProjectId,
-                        gcpLocation,
-                        hasGcpCredentials,
-                        autoRemediation,
                         scans: userScans,
                         isDemoMode: false,
                         activeTab: 'dashboard',
                         currentPath: '/dashboard'
                     });
                 }
-            });
-        });
-    });
-});
-
-// GET GitHub Setup
-app.get('/setup/github', checkAuth, (req, res) => {
-    const userId = req.session.userId;
-    const userEmail = req.session.userEmail;
-
-    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
-        if (err) {
-            console.error('DB error fetching user:', err);
-            return res.status(500).send('Internal Server Error');
-        }
-
-        getOrGenerateGuardianUserId(user, (errId, guardianUserId) => {
-            res.render('github', {
-                userEmail,
-                guardianUserId,
-                activeTab: 'github',
-                currentPath: '/setup/github'
             });
         });
     });
@@ -566,61 +531,60 @@ app.post('/api/scans/:id/reject', checkAuth, (req, res) => {
 });
 
 // POST API to trigger a manual scan in the background
-app.post('/api/scans/trigger', checkAuth, (req, res) => {
-    const userId = req.session.userId;
-    const { repo_name, mr_iid } = req.body;
+app.post('/api/scans/trigger', (req, res) => {
+    const { repo_name, mr_iid, guardian_user_id } = req.body;
 
     if (!repo_name || !mr_iid) {
         return res.status(400).json({ error: 'Missing repo_name or mr_iid.' });
     }
 
-    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+    // Authenticate: either via session (UI) or guardian_user_id (GitLab CI)
+    let query, params;
+    if (req.session && req.session.userId) {
+        query = 'SELECT * FROM users WHERE id = ?';
+        params = [req.session.userId];
+    } else if (guardian_user_id) {
+        query = 'SELECT * FROM users WHERE guardian_user_id = ?';
+        params = [guardian_user_id];
+    } else {
+        return res.status(401).json({ error: 'Unauthorized. Missing session or guardian_user_id.' });
+    }
+
+    db.get(query, params, (err, user) => {
         if (err || !user) {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        const gcpProjectId = user.gcp_project_id || process.env.GCP_PROJECT_ID;
-        const gcpLocation = user.gcp_location || 'us-central1';
+        const gcpProjectId = process.env.GCP_PROJECT_ID;
+        const gcpLocation = process.env.GCP_LOCATION || 'us-central1';
         const gitlabToken = process.env.GITLAB_TOKEN;
 
         if (!gcpProjectId) {
-            return res.status(400).json({ error: 'GCP Project ID not configured in settings.' });
+            return res.status(500).json({ error: 'Server GCP_PROJECT_ID is not configured.' });
         }
         if (!gitlabToken) {
             return res.status(500).json({ error: 'Server GITLAB_TOKEN is not configured.' });
         }
 
-        // Spawn guardian.py
-        const guardianPath = path.join(__dirname, '..', 'guardian.py');
-        const env = { 
-            ...process.env, 
-            GITLAB_TOKEN: gitlabToken,
-            GUARDIAN_USER_ID: user.guardian_user_id
-        };
-
-        // We run guardian.py with appropriate options
-        const args = [
-            guardianPath,
-            '--project-id', repo_name,
-            '--mr-iid', mr_iid,
-            '--gcp-project', gcpProjectId,
-            '--gcp-location', gcpLocation
-        ];
-
-        console.log(`Spawning manual security scan: python ${args.join(' ')}`);
+        const mcpUrl = process.env.GUARDIAN_MCP_URL || 'http://localhost:8000';
         
-        const child = spawn('python', args, { env });
-
-        child.stdout.on('data', (data) => {
-            console.log(`[guardian stdout] ${data}`);
-        });
-
-        child.stderr.on('data', (data) => {
-            console.error(`[guardian stderr] ${data}`);
-        });
-
-        child.on('close', (code) => {
-            console.log(`Manual scan child process exited with code ${code}`);
+        console.log(`Sending manual security scan request to MCP server: ${mcpUrl}/trigger-scan`);
+        
+        fetch(`${mcpUrl}/trigger-scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project_id: repo_name,
+                mr_iid: mr_iid,
+                gcp_project: gcpProjectId,
+                gcp_location: gcpLocation,
+                token: gitlabToken,
+                guardian_user_id: user.guardian_user_id
+            })
+        }).then(response => {
+            console.log(`Manual scan trigger response: ${response.status}`);
+        }).catch(err => {
+            console.error(`Error triggering manual scan:`, err);
         });
 
         // Immediately respond that the scan has been triggered

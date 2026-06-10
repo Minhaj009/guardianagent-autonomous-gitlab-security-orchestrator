@@ -62,9 +62,6 @@
                     <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/dashboard' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
                         Review Dashboard
                     </a>
-                    <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/github' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
-                        GitHub Setup
-                    </a>
                     <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/gitlab' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
                         GitLab Setup
                     </a>
@@ -102,8 +99,8 @@
                         <span class="text-white text-xs font-bold font-mono">1</span>
                     </div>
                     <div class="pt-1">
-                        <span class="block text-primary font-bold text-xs uppercase tracking-wider group-hover:underline">GCP WIF Setup</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Keyless IAM configuration</p>
+                        <span class="block text-primary font-bold text-xs uppercase tracking-wider group-hover:underline">CI/CD Variables</span>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">Secret keys in GitLab</p>
                     </div>
                 </a>
 
@@ -111,17 +108,6 @@
                 <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step2')">
                     <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
                         <span class="text-on-surface-variant group-hover:text-primary text-xs font-bold font-mono">2</span>
-                    </div>
-                    <div class="pt-1">
-                        <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">CI/CD Variables</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Secret keys in GitLab</p>
-                    </div>
-                </a>
-
-                <!-- Step 3 -->
-                <a class="group flex items-start gap-3 p-2 rounded-lg cursor-pointer" onclick="scrollToStep('step3')">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface border border-outline-variant flex items-center justify-center group-hover:border-primary transition-colors">
-                        <span class="text-on-surface-variant group-hover:text-primary text-xs font-bold font-mono">3</span>
                     </div>
                     <div class="pt-1">
                         <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">CI Pipeline File</span>
@@ -136,7 +122,7 @@
                     </div>
                     <div class="pt-1">
                         <span class="block text-on-surface-variant font-bold text-xs uppercase tracking-wider group-hover:text-primary group-hover:underline transition-colors">Troubleshooting</span>
-                        <p class="text-on-surface-variant text-[10px] mt-0.5">Resolve WIF issues</p>
+                        <p class="text-on-surface-variant text-[10px] mt-0.5">Resolve configuration issues</p>
                     </div>
                 </a>
             </nav>
@@ -147,40 +133,14 @@
             <header class="mb-4">
                 <h1 class="text-3xl font-bold text-primary mb-2">GitLab CI Integration Setup Guide</h1>
                 <p class="text-on-surface-variant text-sm max-w-3xl leading-relaxed">
-                    Connect your GitLab repositories to GuardianAgent using keyless Workload Identity Federation (WIF) and OpenID Connect (OIDC). This provides a secure scan context without requiring long-lived Google Cloud service account keys.
+                    Connect your GitLab repositories to GuardianAgent. This provides a secure scan context using hosted analysis resources entirely.
                 </p>
             </header>
 
-            <!-- Step 1: WIF Setup -->
+            <!-- Step 1: CI/CD Variables -->
             <section id="step1" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
                 <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
                     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">1</div>
-                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Configure Google Cloud Workload Identity Federation</h2>
-                </div>
-                <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
-                    <p>
-                        Locate the automated helper script inside your checked-out repository at <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">scripts/setup_gcp_wif.sh</code>.
-                    </p>
-                    <p>
-                        Ensure you are logged in to your Google Cloud SDK CLI and the correct target project is selected. Then execute the setup script:
-                    </p>
-                    <div class="relative group mt-3">
-                        <button class="absolute right-2 top-2 bg-surface border border-outline-variant hover:border-primary rounded-md p-1.5 transition-colors cursor-pointer"
-                                onclick="copyText('bash scripts/setup_gcp_wif.sh', this)" title="Copy script command">
-                            <span class="material-symbols-outlined text-sm block">content_copy</span>
-                        </button>
-                        <pre class="bg-slate-950 text-slate-100 rounded-lg p-4 font-mono text-[11px] overflow-x-auto">bash scripts/setup_gcp_wif.sh</pre>
-                    </div>
-                    <p class="mt-2 font-medium">
-                        The script configures a workload identity pool (<code class="font-mono">gitlab-pool</code>), provider configuration (<code class="font-mono">gitlab-provider</code>), and sets up permissions for the runner service account. Take note of the created resource values.
-                    </p>
-                </div>
-            </section>
-
-            <!-- Step 2: CI/CD Variables -->
-            <section id="step2" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
-                <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
-                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">2</div>
                     <h2 class="text-base font-bold text-primary uppercase tracking-wider">Configure GitLab CI/CD Variables</h2>
                 </div>
                 <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
@@ -188,8 +148,6 @@
                         Navigate to your GitLab project's **Settings** > **CI/CD**, expand **Variables**, and configure:
                     </p>
                     <ul class="list-disc list-outside ml-5 space-y-2.5">
-                        <li><strong>GCP_PROJECT_ID</strong>: Your Google Cloud Project ID (e.g., <code class="font-mono">gitlab-guardian</code>).</li>
-                        <li><strong>GCP_PROJECT_NUMBER</strong>: Your numeric Google Cloud Project ID (found on GCP Console Home).</li>
                         <li><strong>GITLAB_TOKEN</strong>: An Access Token with <code class="font-mono">api, read_repository, write_repository</code> scopes. Set <span class="text-primary font-bold">Masked: Enabled</span> and <span class="text-secondary font-bold">Protected: Disabled</span>.</li>
                         <li><strong>GUARDIAN_USER_ID</strong>: Your unique portal account key:</li>
                     </ul>
@@ -205,15 +163,15 @@
                 </div>
             </section>
 
-            <!-- Step 3: CI Configuration File -->
-            <section id="step3" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
+            <!-- Step 2: CI Pipeline File -->
+            <section id="step2" class="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm scroll-mt-20">
                 <div class="flex items-center gap-3 border-b border-outline-variant pb-3 mb-6">
-                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">3</div>
+                    <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">2</div>
                     <h2 class="text-base font-bold text-primary uppercase tracking-wider">Integrate .gitlab-ci.yml Job</h2>
                 </div>
                 <div class="space-y-4 text-xs text-on-surface-variant leading-relaxed">
                     <p>
-                        Open your repository's <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">.gitlab-ci.yml</code> and add the following job block configuration to your pipeline pipeline setup:
+                        Open your repository's <code class="bg-background px-1.5 py-0.5 font-mono text-primary rounded">.gitlab-ci.yml</code> and add the following job block configuration to your pipeline setup:
                     </p>
                     
                     <!-- Copy Code Block -->
@@ -227,37 +185,11 @@
 
 security-scan:
   stage: test
-  image: python:3.11-slim
-  id_tokens:
-    GITLAB_OIDC_TOKEN:
-      aud: https://iam.googleapis.com
-  before_script:
-    - pip install requests google-genai tenacity
+  image: curlimages/curl:latest
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - echo "$GITLAB_OIDC_TOKEN" > gitlab-token.txt
-    - |
-      python -c "
-      import json, os
-      proj_num = os.environ.get('GCP_PROJECT_NUMBER')
-      proj_id = os.environ.get('GCP_PROJECT_ID')
-      config = {
-        'type': 'external_account',
-        'audience': f'//iam.googleapis.com/projects/{proj_num}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider',
-        'subject_token_type': 'urn:ietf:params:oauth:token-type:jwt',
-        'token_url': 'https://sts.googleapis.com/v1/token',
-        'credential_source': {
-          'file': 'gitlab-token.txt'
-        },
-        'service_account_impersonation_url': f'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/gitlab-runner-sa@{proj_id}.iam.gserviceaccount.com:generateAccessToken'
-      }
-      with open('gcp-creds.json', 'w') as f:
-          json.dump(config, f, indent=2)
-      "
-    - export GOOGLE_APPLICATION_CREDENTIALS=gcp-creds.json
-    - curl -sS https://raw.githubusercontent.com/soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator/main/guardian.py -o guardian.py
-    - python guardian.py --project-id "$CI_PROJECT_ID" --mr-iid "$CI_MERGE_REQUEST_IID" --gitlab-url "$CI_SERVER_URL" --gcp-project "$GCP_PROJECT_ID"
+    - curl -X POST -H "Content-Type: application/json" -d "{\"repo_name\":\"$CI_PROJECT_PATH\", \"mr_iid\":$CI_MERGE_REQUEST_IID, \"guardian_user_id\":\"$GUARDIAN_USER_ID\"}" http://localhost:3000/api/scans/trigger
   variables:
     GUARDIAN_USER_ID: "<%= guardianUserId %>"</pre>
                     </div>
@@ -273,37 +205,6 @@ security-scan:
                 
                 <div class="border border-outline-variant rounded-xl overflow-hidden bg-surface shadow-sm">
                     <!-- Item 1 -->
-                    <div class="border-b border-outline-variant last:border-b-0">
-                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
-                                onclick="toggleAccordion('acc1')">
-                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
-                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
-                                OIDC Workload Identity Provider describe check
-                            </span>
-                            <span id="acc1-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
-                        </button>
-                        <div id="acc1" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
-                            Run the validation check utility command to verify pool settings:
-                            <pre class="bg-slate-950 text-slate-100 p-2 mt-2 rounded font-mono text-[10px]">gcloud iam workload-identity-pools describe gitlab-pool --location="global"</pre>
-                        </div>
-                    </div>
-
-                    <!-- Item 2 -->
-                    <div class="border-b border-outline-variant last:border-b-0">
-                        <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
-                                onclick="toggleAccordion('acc2')">
-                            <span class="text-xs font-bold text-on-surface flex items-center gap-2">
-                                <span class="material-symbols-outlined text-secondary text-sm">warning</span>
-                                Vertex AI Platform Permissions check
-                            </span>
-                            <span id="acc2-arrow" class="material-symbols-outlined transition-transform text-outline-variant">expand_more</span>
-                        </button>
-                        <div id="acc2" class="hidden p-4 pt-0 text-xs text-on-surface-variant bg-surface leading-relaxed border-t border-outline-variant/10">
-                            If your scanner runner pipelines fail with GCP permission issues, ensure your service account <code class="font-mono bg-background px-1 rounded text-primary">gitlab-runner-sa</code> has the role <code class="font-mono bg-background px-1 rounded text-primary">roles/aiplatform.user</code> or Vertex AI access enabled.
-                        </div>
-                    </div>
-
-                    <!-- Item 3 -->
                     <div class="border-b border-outline-variant last:border-b-0">
                         <button class="w-full flex justify-between items-center p-4 hover:bg-background transition-colors text-left" 
                                 onclick="toggleAccordion('acc3')">

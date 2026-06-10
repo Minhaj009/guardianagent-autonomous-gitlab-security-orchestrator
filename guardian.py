@@ -174,10 +174,10 @@ def get_ensemble_models() -> List[Dict[str, Any]]:
     Different configurations run with varying temperatures and prompt targets to build consensus.
     """
     return [
-        {"name": "gemini-1.5-flash", "temperature": 0.1, "system_suffix": "Focus on high-precision syntax issues and direct security risks.", "id": "Gemini-1.5-Flash (Precision)"},
-        {"name": "gemini-1.5-pro", "temperature": 0.2, "system_suffix": "Perform deep logical path analysis, trace data flows, and find subtle logic flaws.", "id": "Gemini-1.5-Pro (Deep)"},
-        {"name": "gemini-1.5-flash", "temperature": 0.7, "system_suffix": "Look widely for architectural design issues, dependency vulnerabilities, and configuration flaws.", "id": "Gemini-1.5-Flash (Creative)"},
-        {"name": "gemini-1.5-pro", "temperature": 0.8, "system_suffix": "Look closely for hidden race conditions, authorization issues (IDOR), and cryptographic weaknesses.", "id": "Gemini-1.5-Pro (Logical)"}
+        {"name": "gemini-2.0-flash", "temperature": 0.1, "system_suffix": "Focus on high-precision syntax issues and direct security risks.", "id": "Gemini-2.0-Flash (Precision)"},
+        {"name": "gemini-2.0-pro", "temperature": 0.2, "system_suffix": "Perform deep logical path analysis, trace data flows, and find subtle logic flaws.", "id": "Gemini-2.0-Pro (Deep)"},
+        {"name": "gemini-2.0-flash", "temperature": 0.7, "system_suffix": "Look widely for architectural design issues, dependency vulnerabilities, and configuration flaws.", "id": "Gemini-2.0-Flash (Creative)"},
+        {"name": "gemini-2.0-pro", "temperature": 0.8, "system_suffix": "Look closely for hidden race conditions, authorization issues (IDOR), and cryptographic weaknesses.", "id": "Gemini-2.0-Pro (Logical)"}
     ]
 
 
@@ -266,7 +266,7 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], client:
     
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-pro",
+            model="gemini-2.0-pro",
             contents=json.dumps(input_data),
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
@@ -319,7 +319,7 @@ def generate_remediation_patch(client: genai.Client, file_path: str, vuln_type: 
     )
     
     response = client.models.generate_content(
-        model="gemini-1.5-pro",
+        model="gemini-2.0-pro",
         contents=user_content,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -1102,6 +1102,35 @@ class MCPHTTPRequestHandler(BaseHTTPRequestHandler):
                     sse_sessions[session_id].put(response)
                     
             threading.Thread(target=process_and_respond).start()
+        elif parsed_path.path == "/trigger-scan":
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                request = json.loads(post_data.decode("utf-8"))
+            except Exception:
+                self.send_response(400)
+                self.end_headers()
+                return
+
+            self.send_response(202)
+            self.send_header("Content-Length", "0")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            
+            project_id = request.get("project_id")
+            mr_iid = request.get("mr_iid")
+            gitlab_url = request.get("gitlab_url", "https://gitlab.com")
+            token = request.get("token", os.environ.get("GITLAB_TOKEN"))
+            gcp_project = request.get("gcp_project", os.environ.get("GCP_PROJECT_ID"))
+            gcp_location = request.get("gcp_location", "us-central1")
+            
+            if request.get("guardian_user_id"):
+                os.environ["GUARDIAN_USER_ID"] = request.get("guardian_user_id")
+
+            threading.Thread(target=run_orchestrator, args=(
+                project_id, mr_iid, gitlab_url, token, gcp_project, gcp_location, None
+            )).start()
         else:
             self.send_response(404)
             self.send_header("Content-Length", "0")
@@ -1146,64 +1175,35 @@ def run_sse_mcp_server(port: int):
         logger.info("SSE HTTP MCP Server stopped.")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="GitLab Security Guardian Vertex AI Ensemble Orchestrator")
-    parser.add_argument("--project-id", help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
-    parser.add_argument("--mr-iid", type=int, help="Merge Request Internal ID (IID)")
-    parser.add_argument("--gitlab-url", default=os.getenv("GITLAB_API_URL", "https://gitlab.com"), help="GitLab base URL")
-    parser.add_argument("--gcp-project", default=os.getenv("GCP_PROJECT_ID"), help="GCP Project ID")
-    parser.add_argument("--gcp-location", default=os.getenv("GCP_LOCATION", "us-central1"), help="Vertex AI location")
-    parser.add_argument("--mcp-stdio", action="store_true", help="Run in Stdio Model Context Protocol (MCP) server mode")
-    parser.add_argument("--mcp-sse", action="store_true", help="Run in HTTP/SSE Model Context Protocol (MCP) server mode")
-    parser.add_argument("--mcp-port", type=int, default=8000, help="Port to bind the SSE MCP server to (defaults to 8000)")
-    parser.add_argument("--auto-remediate", action="store_true", default=None, help="Force enable auto-remediation (database override)")
-    parser.add_argument("--no-auto-remediate", action="store_true", help="Force disable auto-remediation (database override)")
-    
-    args = parser.parse_args()
-    
-    if args.mcp_stdio:
-        run_stdio_mcp_server()
-        return
-        
-    if args.mcp_sse:
-        run_sse_mcp_server(args.mcp_port)
-        return
-        
-    # Standard CLI validation
-    if not args.project_id or not args.mr_iid:
-        parser.error("--project-id and --mr-iid are required when not running in MCP mode.")
-        
-    token = os.environ.get('GITLAB_TOKEN')
-    
+def run_orchestrator(project_id, mr_iid, gitlab_url, token, gcp_project, gcp_location, auto_remediate_override):
     if not token:
         logger.error("Environment variable 'GITLAB_TOKEN' is missing.")
-        exit(1)
+        return
         
-    if not args.gcp_project:
-        logger.error("GCP Project ID is missing. Provide it via --gcp-project or setting GCP_PROJECT_ID env var.")
-        exit(1)
+    if not gcp_project:
+        logger.error("GCP Project ID is missing.")
+        return
         
-    # Setup Vertex AI GenAI Client
-    logger.info(f"Initializing Google GenAI Client targeting GCP project: {args.gcp_project} in region: {args.gcp_location}...")
+    logger.info(f"Initializing Google GenAI Client targeting GCP project: {gcp_project} in region: {gcp_location}...")
     try:
         client = genai.Client(
             vertexai=True,
-            project=args.gcp_project,
-            location=args.gcp_location
+            project=gcp_project,
+            location=gcp_location
         )
     except Exception as e:
         logger.critical(f"Failed to initialize Vertex AI client: {e}")
-        exit(1)
+        return
         
     try:
         # 1. Fetch changes
-        changes = fetch_merge_request_diff(args.project_id, args.mr_iid, args.gitlab_url, token)
+        changes = fetch_merge_request_diff(project_id, mr_iid, gitlab_url, token)
         
         # Determine auto-remediation behavior: CLI flags override the database settings
         guardian_user_id = os.environ.get("GUARDIAN_USER_ID")
-        if args.no_auto_remediate:
+        if auto_remediate_override is False:
             auto_remediate = False
-        elif args.auto_remediate:
+        elif auto_remediate_override is True:
             auto_remediate = True
         else:
             auto_remediate = check_db_auto_remediation(guardian_user_id)
@@ -1239,24 +1239,59 @@ def main():
                     "corrected_code": corrected_code
                 })
             
-            report_scans_to_portal(guardian_user_id, args.project_id, scans_to_report)
+            report_scans_to_portal(guardian_user_id, project_id, scans_to_report)
         else:
             logger.info("GUARDIAN_USER_ID not set. Skipping report back to portal.")
         
         # 3. Post comment back to GitLab MR
         full_comment = f"## 🛡️ GitLab Security Guardian Consensus Report\n\n{report_markdown}"
-        post_mr_comment(args.project_id, args.mr_iid, full_comment, args.gitlab_url, token)
+        post_mr_comment(project_id, mr_iid, full_comment, gitlab_url, token)
         
         # 4. Git operations occur at the absolute end of guardian.py after all reports are compiled and commented
         if remediated_files:
-            git_commit_and_push(remediated_files, token, args.project_id, args.gitlab_url)
+            git_commit_and_push(remediated_files, token, project_id, gitlab_url)
         
         logger.info("Orchestration pipeline finished successfully.")
         
     except Exception as e:
         logger.critical(f"Guardian orchestrator failed: {str(e)}")
-        exit(1)
 
+def main():
+    parser = argparse.ArgumentParser(description="GitLab Security Guardian Vertex AI Ensemble Orchestrator")
+    parser.add_argument("--project-id", help="GitLab Project ID or Path (e.g. soft-hive-group/project)")
+    parser.add_argument("--mr-iid", type=int, help="Merge Request Internal ID (IID)")
+    parser.add_argument("--gitlab-url", default=os.getenv("GITLAB_API_URL", "https://gitlab.com"), help="GitLab base URL")
+    parser.add_argument("--gcp-project", default=os.getenv("GCP_PROJECT_ID"), help="GCP Project ID")
+    parser.add_argument("--gcp-location", default=os.getenv("GCP_LOCATION", "us-central1"), help="Vertex AI location")
+    parser.add_argument("--mcp-stdio", action="store_true", help="Run in Stdio Model Context Protocol (MCP) server mode")
+    parser.add_argument("--mcp-sse", action="store_true", help="Run in HTTP/SSE Model Context Protocol (MCP) server mode")
+    parser.add_argument("--mcp-port", type=int, default=8000, help="Port to bind the SSE MCP server to (defaults to 8000)")
+    parser.add_argument("--auto-remediate", action="store_true", default=None, help="Force enable auto-remediation (database override)")
+    parser.add_argument("--no-auto-remediate", action="store_true", help="Force disable auto-remediation (database override)")
+    
+    args = parser.parse_args()
+    
+    if args.mcp_stdio:
+        run_stdio_mcp_server()
+        return
+        
+    if args.mcp_sse:
+        run_sse_mcp_server(args.mcp_port)
+        return
+        
+    # Standard CLI validation
+    if not args.project_id or not args.mr_iid:
+        parser.error("--project-id and --mr-iid are required when not running in MCP mode.")
+        
+    token = os.environ.get('GITLAB_TOKEN')
+    
+    auto_remediate_override = None
+    if args.no_auto_remediate:
+        auto_remediate_override = False
+    elif args.auto_remediate:
+        auto_remediate_override = True
+
+    run_orchestrator(args.project_id, args.mr_iid, args.gitlab_url, token, args.gcp_project, args.gcp_location, auto_remediate_override)
 
 if __name__ == "__main__":
     main()

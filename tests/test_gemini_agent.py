@@ -86,7 +86,7 @@ class TestGeminiAgent(unittest.TestCase):
         # Execute call
         result = call_gemini_model(
             client=mock_client,
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.0-flash",
             diff_content="File: app.py\nDiff: ...",
             temperature=0.1,
             system_prompt="Test Prompt"

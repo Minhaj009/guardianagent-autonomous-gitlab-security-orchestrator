@@ -1,0 +1,115 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "GitLab Security Guardian API",
+    "description": "API for triggering autonomous security audits and remediations on GitLab Merge Requests using Google Cloud Vertex AI.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-guardian-mcp-runner-url.a.run.app",
+      "description": "Deployed Google Cloud Run Security Runner URL"
+    }
+  ],
+  "paths": {
+    "/message": {
+      "post": {
+        "summary": "Run Security Scan (JSON-RPC MCP Call)",
+        "description": "Executes the GitLab Security Guardian scan on a Merge Request via JSON-RPC/MCP format.",
+        "operationId": "runSecurityScanMCP",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Unique session ID generated during the initial SSE handshake."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCPRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted and processing asynchronously."
+          },
+          "400": {
+            "description": "Invalid JSON or missing query parameter."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MCPRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "method", "params"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "example": "2.0"
+          },
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "method": {
+            "type": "string",
+            "example": "tools/call"
+          },
+          "params": {
+            "type": "object",
+            "required": ["name", "arguments"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "run_security_scan"
+              },
+              "arguments": {
+                "type": "object",
+                "required": ["project_id", "mr_iid", "gcp_project"],
+                "properties": {
+                  "project_id": {
+                    "type": "string",
+                    "description": "The GitLab Project ID or Path (e.g. soft-hive-group/project)",
+                    "example": "soft-hive-group/guardianagent-autonomous-gitlab-security-orchestrator"
+                  },
+                  "mr_iid": {
+                    "type": "integer",
+                    "description": "The Merge Request Internal ID (IID)",
+                    "example": 5
+                  },
+                  "gitlab_url": {
+                    "type": "string",
+                    "description": "Optional GitLab base URL (defaults to https://gitlab.com)",
+                    "example": "https://gitlab.com"
+                  },
+                  "gcp_project": {
+                    "type": "string",
+                    "description": "The GCP Project ID where Vertex AI is set up",
+                    "example": "my-vertex-ai-project"
+                  },
+                  "gcp_location": {
+                    "type": "string",
+                    "description": "Optional Vertex AI region/location (defaults to us-central1)",
+                    "example": "us-central1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,25 +1,29 @@
 # GitLab Security Guardian 🛡️
 
-An autonomous, full-stack Security Orchestrator designed to continuously scan, monitor, automatically remediate, and enforce security policies across code repositories.
+An autonomous, full-stack Security Orchestrator designed to continuously scan, monitor, automatically remediate, and enforce security policies across code repositories using Google Cloud Vertex AI.
 
 ---
 
 ## 🚀 Key Features
 
-### 1. Dynamic LLM Mega-Ensemble Orchestrator
-- **Dynamic Model Discovery**: Queries the OpenRouter API dynamically to fetch all available free models (cost = 0 or `:free` suffix).
-- **High Concurrency Scanning**: Utilizes a Python `ThreadPoolExecutor` with a pool size of 5 to concurrently dispatch MR code diffs to all free models, avoiding HTTP 429 Rate Limits.
-- **Robust Exception Handling**: Gracefully ignores transient model failures (404, 429, 503) and cleans up DeepSeek R1 `<think>...</think>` tags to keep JSON parsing stable.
-- **Environment Safety**: Credentials (`GITLAB_TOKEN` and `OPENROUTER_API_KEY`) are retrieved securely via environment variables instead of exposed CLI flags.
+### 1. Vertex AI Gemini Ensemble Orchestrator
+- **Multi-Model Ensemble**: Employs an ensemble of **Google Cloud Vertex AI Gemini models** (`gemini-1.5-pro` and `gemini-1.5-flash`) run concurrently with diverse temperature profiles and customized system prompt orientations:
+  - **Gemini 1.5 Flash (Precision)**: Low temperature (0.1) for high-precision syntax issues and direct security risks.
+  - **Gemini 1.5 Pro (Deep)**: Medium-low temperature (0.2) for deep logical path analysis, tracking data flows, and identifying subtle logic flaws.
+  - **Gemini 1.5 Flash (Creative)**: Medium temperature (0.7) for wide architectural design issues, dependency vulnerabilities, and configuration flaws.
+  - **Gemini 1.5 Pro (Logical)**: High temperature (0.8) for hidden race conditions, authorization flaws (IDOR), and cryptographic weaknesses.
+- **Structured JSON Schema**: Leverages Vertex AI structured outputs with Pydantic schema enforcement to guarantee the returned security findings strictly comply with the expected list format.
+- **Robust Exception Handling**: Gracefully ignores transient model failures and retries calls with exponential backoff using `tenacity`.
+- **Environment Safety**: Authenticates securely via standard Google Cloud Credentials (OIDC/WIF or service accounts) without needing hardcoded keys, with `GITLAB_TOKEN` retrieved safely from environment variables.
 
 ### 2. Consensus & Confidence Engine
-- **Consolidated Deduplication**: Groups identical scanner findings by file and line number.
-- **Mathematical Consensus**: Calculates a Consensus Score based on what percentage of the successful scanner models flagged the specific issue.
-- **Llama-Powered Synthesis**: Calls `meta-llama/llama-3.3-70b-instruct:free` to synthesize various model descriptions into a single, cohesive, 1-3 sentence summary.
+- **Consolidated Deduplication**: Groups identical scanner findings by file and line number across all ensemble models.
+- **Mathematical Consensus**: Calculates a Consensus Score based on what percentage of the active ensemble models flagged the specific issue.
+- **Gemini-Powered Synthesis**: Uses `gemini-1.5-pro` to synthesize diverse descriptions from different models into a single, cohesive, 1-3 sentence summary.
 
 ### 3. Auto-Remediation Engine (Phase 2)
 - **High-Confidence Targeting**: Automatically targets any vulnerability with a Consensus Score of 30% or higher.
-- **Conflict Marker Patching**: Queries Llama 3.3 to rewrite the code block securely, returning the patch formatted using standard conflict markers:
+- **Conflict Marker Patching**: Queries `gemini-1.5-pro` to rewrite the code block securely, returning the patch formatted using standard conflict markers:
   ```diff
   <<<<<<< ORIGINAL
   [vulnerable code block]
@@ -34,7 +38,7 @@ An autonomous, full-stack Security Orchestrator designed to continuously scan, m
 ### 4. Micro-SaaS Developer Platform (Milestone A)
 A complete, premium web-based developer portal built under the `web/` subdirectory:
 - **Tech Stack**: Express.js server, EJS templates, SQLite (`sqlite3`) local database, and session authentication (`bcryptjs` password hashing).
-- **Tailwind CSS v4 Dark-Mode UI**: A glassmorphic dashboard featuring glowing background assets, dynamic metrics, and settings config to save user API keys.
+- **Tailwind CSS v4 Dark-Mode UI**: A glassmorphic dashboard featuring glowing background assets, dynamic metrics, and settings config to save user GCP parameters.
 - **Simulated Demo Sandbox**: Interactive repository table switcher (`SoftHive-group/Internal-Tools` and `Guardian-Shield/Web-Portal`) allowing users to interact with live-feeling consensus reports out-of-the-box.
 - **Tabbed Onboarding Guides**: Displays copyable YAML setup configurations for GitLab CI/CD and GitHub Actions.
 
@@ -42,13 +46,14 @@ A complete, premium web-based developer portal built under the `web/` subdirecto
 
 ## 📂 Project Structure
 
-- `guardian.py`: The Python-based ensemble scanner and remediation orchestrator.
+- `guardian.py`: The Python-based ensemble scanner and remediation orchestrator. Exposes both standard CLI interface and SSE/Stdio Model Context Protocol (MCP) server endpoints.
 - `vulnerable_service.py`: A test service featuring 5 intentional flaws (AWS keys, SQL injection, Command injection, Pickle load, IDOR) used to test the consensus and remediation engines.
 - `web/`: The Micro-SaaS Express.js platform.
   - `web/server.js`: Server routing and API logic.
   - `web/database.js`: SQLite connection, tables, and mock data.
   - `web/views/`: EJS frontend templates.
 - `.gitlab-ci.yml`: CI configurations to run security jobs on MR events.
+- `scripts/`: Helper scripts for deployment and WIF configuration.
 
 ---
 
@@ -56,14 +61,14 @@ A complete, premium web-based developer portal built under the `web/` subdirecto
 
 ### 1. Run the Security Scanner Orchestrator
 To run a manual orchestrator scan locally:
-1. Export environment variables:
+1. Export environment variables and log in to Google Cloud:
    ```bash
-   export GITLAB_TOKEN="your-token"
-   export OPENROUTER_API_KEY="your-key"
+   export GITLAB_TOKEN="your-gitlab-token"
+   gcloud auth application-default login
    ```
 2. Run the script:
    ```bash
-   python guardian.py --project-id "your-project-id" --mr-iid <merge-request-iid>
+   python guardian.py --project-id "your-gitlab-project-id" --mr-iid <merge-request-iid> --gcp-project "your-gcp-project-id"
    ```
 
 ### 2. Run the Micro-SaaS Web Console

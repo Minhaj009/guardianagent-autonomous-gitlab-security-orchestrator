@@ -3,10 +3,36 @@ stages:
 
 security-scan:
   stage: test
-  image: python:latest
+  image: python:3.11-slim
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://iam.googleapis.com
   before_script:
-    - pip install requests
+    - pip install requests google-genai tenacity
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - python guardian.py --project-id $CI_PROJECT_ID --mr-iid $CI_MERGE_REQUEST_IID --gitlab-url $CI_SERVER_URL
+    - echo "$GITLAB_OIDC_TOKEN" > gitlab-token.txt
+    - |
+      python -c "
+      import json, os
+      proj_num = os.environ.get('GCP_PROJECT_NUMBER')
+      proj_id = os.environ.get('GCP_PROJECT_ID')
+      if not proj_num or not proj_id:
+          print('Warning: GCP_PROJECT_NUMBER or GCP_PROJECT_ID is not set in GitLab CI variables. WIF credential generation may fail.')
+      config = {
+        'type': 'external_account',
+        'audience': f'//iam.googleapis.com/projects/{proj_num}/locations/global/workloadIdentityPools/gitlab-pool/providers/gitlab-provider',
+        'subject_token_type': 'urn:ietf:params:oauth:token-type:jwt',
+        'token_url': 'https://sts.googleapis.com/v1/token',
+        'credential_source': {
+          'file': 'gitlab-token.txt'
+        },
+        'service_account_impersonation_url': f'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/gitlab-runner-sa@{proj_id}.iam.gserviceaccount.com:generateAccessToken'
+      }
+      with open('gcp-creds.json', 'w') as f:
+          json.dump(config, f, indent=2)
+      "
+    - export GOOGLE_APPLICATION_CREDENTIALS=gcp-creds.json
+    - python guardian.py --project-id "$CI_PROJECT_ID" --mr-iid "$CI_MERGE_REQUEST_IID" --gitlab-url "$CI_SERVER_URL" --gcp-project "$GCP_PROJECT_ID"
+

@@ -1,153 +1,536 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>GuardianAgent - Developer Console</title>
-    <!-- Tailwind CSS v4 via CDN -->
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Courier+Prime&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#375561",
+                        "primary-container": "#4f6d7a",
+                        "background": "#f2fbff",
+                        "surface": "#ffffff",
+                        "surface-dim": "#c8dee7",
+                        "surface-bright": "#f2fbff",
+                        "on-surface": "#091e25",
+                        "on-surface-variant": "#42484b",
+                        "outline": "#72787b",
+                        "outline-variant": "#c2c7cb",
+                        "secondary": "#a04118",
+                        "secondary-container": "#fe8859",
+                        "tertiary": "#685e3e",
+                        "tertiary-container": "#b7ab86"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.5rem"
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #EAEAEA;
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 109, 122, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(79, 109, 122, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 109, 122, 0); }
         }
     </style>
 </head>
-<body class="bg-[#EAEAEA] text-[#4F6D7A] min-h-screen pb-12">
+<body class="bg-background text-on-surface antialiased min-h-screen pb-72">
 
     <!-- Sticky Top Navigation -->
-    <nav class="sticky top-0 z-50 bg-[#EAEAEA] border-b border-[#4F6D7A] px-6 py-4 flex items-center justify-between pointer-events-auto" style="pointer-events: auto;">
-        <div class="flex items-center gap-3">
-            <div class="p-2 bg-white border border-[#4F6D7A]">
-                <svg class="w-6 h-6 text-[#4F6D7A]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                </svg>
+    <header class="bg-surface sticky top-0 w-full z-50 border-b border-outline-variant">
+        <div class="flex justify-between items-center w-full px-6 h-16 max-w-7xl mx-auto">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">shield</span>
+                    <span class="font-bold text-lg text-primary tracking-tight">GuardianAgent</span>
+                    <span class="text-[10px] border border-outline text-primary px-1.5 py-0.5 ml-2 font-mono uppercase font-bold rounded">v1.0.0</span>
+                </div>
+                <nav class="hidden md:flex items-center gap-6 ml-4">
+                    <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/dashboard' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        Review Dashboard
+                    </a>
+                    <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/github' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        GitHub Setup
+                    </a>
+                    <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-outline-variant/30 <%= currentPath === '/setup/gitlab' ? 'bg-surface-dim text-primary' : 'text-on-surface-variant hover:text-primary' %> rounded-lg cursor-pointer">
+                        GitLab Setup
+                    </a>
+                </nav>
             </div>
-            <div>
-                <span class="font-bold text-lg text-[#4F6D7A] tracking-tight">GuardianAgent</span>
-                <span class="text-[10px] border border-[#4F6D7A] text-[#4F6D7A] px-1.5 py-0.5 ml-2 font-mono uppercase font-bold">v1.0.0</span>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-surface-dim px-3 py-1.5 rounded-full border border-outline-variant">
+                    <span class="w-2 h-2 rounded-full bg-primary-container status-pulse"></span>
+                    <span class="text-[10px] font-bold text-primary uppercase tracking-wider">Pipeline Live</span>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">User</p>
+                    <p class="text-xs font-bold text-primary"><%= userEmail %></p>
+                </div>
+                <a href="/logout" class="py-2 px-3 border border-outline text-xs font-bold uppercase tracking-wider text-primary hover:bg-surface-dim transition-all duration-200 cursor-pointer rounded-lg" title="Logout">
+                    Logout
+                </a>
             </div>
         </div>
+    </header>
 
-        <!-- Center links -->
-        <div class="hidden md:flex items-center gap-4">
-            <a href="/dashboard" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/dashboard' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                Review Dashboard
-            </a>
-            <a href="/setup/github" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/setup/github' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                GitHub Setup
-            </a>
-            <a href="/setup/gitlab" class="text-xs font-bold uppercase tracking-wider transition-all duration-200 py-1.5 px-3 border border-[#4F6D7A]/30 <%= currentPath === '/setup/gitlab' ? 'bg-[#E8DAB2] text-[#4F6D7A]' : 'border-transparent text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/20' %> cursor-pointer">
-                GitLab Setup
-            </a>
-        </div>
-
-        <div class="flex items-center gap-4">
-            <div class="text-right hidden sm:block">
-                <p class="text-[10px] text-[#4F6D7A]/60 uppercase tracking-widest font-semibold">User</p>
-                <p class="text-xs font-bold text-[#4F6D7A]"><%= userEmail %></p>
-            </div>
-            <a href="/logout" class="py-2 px-3 border border-[#4F6D7A] text-xs font-bold uppercase tracking-wider text-[#4F6D7A] hover:bg-[#C0D6DF]/30 transition-all duration-200 cursor-pointer" title="Logout">
-                Logout
-            </a>
-        </div>
-    </nav>
-
+    <!-- Main Canvas -->
     <main class="max-w-7xl mx-auto px-6 py-10 space-y-10">
-        <!-- Dashboard Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold uppercase tracking-tight text-[#4F6D7A]">Security Review Console</h1>
-                <p class="text-[#4F6D7A]/80 text-xs mt-1.5 font-medium">Verify consensus reviews and patches generated by autonomous agent ensembles.</p>
+                <h1 class="text-2xl font-bold uppercase tracking-tight text-primary">Security Review Console</h1>
+                <p class="text-on-surface-variant text-xs mt-1.5 font-medium">Verify consensus reviews and patches generated by autonomous agent ensembles.</p>
             </div>
             <% if (isDemoMode) { %>
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8DAB2]/20 border border-[#4F6D7A] text-[#4F6D7A] text-[10px] font-bold uppercase tracking-wider">
+                <div class="inline-flex items-center gap-2 px-3.5 py-2 bg-tertiary-container/20 border border-tertiary-container text-tertiary text-[10px] font-bold uppercase tracking-wider rounded-lg">
+                    <span class="material-symbols-outlined text-xs">science</span>
                     <span>Demo Sandbox Active</span>
                 </div>
             <% } else { %>
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#C0D6DF]/20 border border-[#4F6D7A] text-[#4F6D7A] text-[10px] font-bold uppercase tracking-wider">
-                    <span>Live Audit Mode Connected</span>
+                <div class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-300 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">
+                    <span class="material-symbols-outlined text-xs">security</span>
+                    <span>Live Audit Connected</span>
                 </div>
             <% } %>
         </div>
 
-        <!-- Metric Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <!-- Metric Card 1 -->
-            <div class="bg-[#C0D6DF]/20 border border-[#4F6D7A] p-8 relative transition-all duration-200 hover:bg-[#C0D6DF]/30">
-                <p class="text-[10px] font-bold text-[#4F6D7A]/70 uppercase tracking-wider">Active LLM Ensemble</p>
-                <h3 class="text-3xl font-bold text-[#4F6D7A] mt-2">15</h3>
-                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Consensus models loaded</p>
+        <!-- KPI Metrics Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Card 1 -->
+            <div class="bg-surface rounded-2xl p-6 border border-outline-variant relative overflow-hidden group hover:border-primary transition-colors shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-container"></div>
+                <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Active LLM Ensemble</p>
+                <h3 class="text-3xl font-bold text-primary">15 Models</h3>
+                <p class="text-[10px] text-primary-container mt-2 font-semibold">100% Availability</p>
             </div>
+            <!-- Card 2 -->
+            <div class="bg-surface rounded-2xl p-6 border border-outline-variant relative overflow-hidden group hover:border-primary transition-colors shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+                <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Vulnerabilities Found</p>
+                <h3 id="metricVulns" class="text-3xl font-bold text-on-surface">0</h3>
+                <p class="text-[10px] text-secondary mt-2 font-semibold">Flagged in target repositories</p>
+            </div>
+            <!-- Card 3 -->
+            <div class="bg-surface rounded-2xl p-6 border border-outline-variant relative overflow-hidden group hover:border-primary transition-colors shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
+                <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Patches Pushed</p>
+                <h3 id="metricPatches" class="text-3xl font-bold text-on-surface">0</h3>
+                <p class="text-[10px] text-emerald-600 mt-2 font-semibold">Applied directly to repository</p>
+            </div>
+            <!-- Card 4 -->
+            <div class="bg-surface rounded-2xl p-6 border border-outline-variant relative overflow-hidden group hover:border-primary transition-colors shadow-sm">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+                <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Branches Tested</p>
+                <h3 class="text-3xl font-bold text-on-surface">5</h3>
+                <p class="text-[10px] text-tertiary mt-2 font-semibold">Remediation paths verified</p>
+            </div>
+        </section>
 
-            <!-- Metric Card 2 -->
-            <div class="bg-[#C0D6DF]/20 border border-[#4F6D7A] p-8 relative transition-all duration-200 hover:bg-[#C0D6DF]/30">
-                <p class="text-[10px] font-bold text-[#4F6D7A]/70 uppercase tracking-wider">Vulnerabilities Found</p>
-                <h3 id="metricVulns" class="text-3xl font-bold text-[#4F6D7A] mt-2">0</h3>
-                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Flagged from target repositories</p>
-            </div>
+        <!-- GCP & Agent Configuration Settings Panel -->
+        <section class="bg-surface rounded-2xl border border-outline-variant overflow-hidden shadow-sm">
+            <button onclick="toggleConfigPanel()" class="w-full p-6 border-b border-outline-variant flex justify-between items-center bg-surface hover:bg-background/20 transition-colors text-left focus:outline-none">
+                <div>
+                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Google Cloud & Agent Configuration</h2>
+                    <p class="text-on-surface-variant text-[11px] mt-1 font-medium">Configure your Google Cloud Project parameters and authentication credentials securely.</p>
+                </div>
+                <span id="config-panel-arrow" class="material-symbols-outlined transition-transform text-outline">expand_less</span>
+            </button>
+            
+            <div id="configPanelContainer" class="p-6">
+                <form action="/settings/update-gcp" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Google Cloud Project ID</label>
+                        <input type="text" name="gcp_project_id" value="<%= gcpProjectId %>" required placeholder="gitlab-guardian"
+                               class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Vertex AI Location / Region</label>
+                        <input type="text" name="gcp_location" value="<%= gcpLocation || 'us-central1' %>" required placeholder="us-central1"
+                               class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-semibold">
+                    </div>
+                    
+                    <!-- Status Badge -->
+                    <div class="flex items-center gap-3 h-[42px]">
+                        <% if (hasGcpCredentials) { %>
+                            <div class="w-full flex items-center justify-center gap-2 py-2 bg-emerald-50 border border-emerald-300 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-lg">
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+                                <span>Key Configured</span>
+                            </div>
+                        <% } else { %>
+                            <div class="w-full flex items-center justify-center gap-2 py-2 bg-tertiary-container/20 border border-tertiary-container text-tertiary text-[10px] font-bold uppercase tracking-wider rounded-lg">
+                                <span class="material-symbols-outlined text-sm">warning</span>
+                                <span>Key Missing</span>
+                            </div>
+                        <% } %>
+                    </div>
+                    
+                    <!-- Auto-Remediation Toggle -->
+                    <div class="md:col-span-3 flex items-center border border-outline-variant p-4 rounded-xl bg-background/25">
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs font-bold uppercase tracking-wider text-on-surface">Enable Auto-Remediation</span>
+                            <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" name="auto_remediation" value="true" <%= autoRemediation ? 'checked' : '' %> class="sr-only peer">
+                                <!-- Track -->
+                                <div class="w-11 h-6 bg-outline-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+                            </label>
+                        </div>
+                        <span class="ml-4 text-[10px] text-on-surface-variant font-medium">
+                            Automatically push generated patches directly back to MR branches with <code class="bg-background px-1 py-0.5 rounded font-mono">[skip ci]</code> commit flags.
+                        </span>
+                    </div>
 
-            <!-- Metric Card 3 -->
-            <div class="bg-[#C0D6DF]/20 border border-[#4F6D7A] p-8 relative transition-all duration-200 hover:bg-[#C0D6DF]/30">
-                <p class="text-[10px] font-bold text-[#4F6D7A]/70 uppercase tracking-wider">Patches Pushed</p>
-                <h3 id="metricPatches" class="text-3xl font-bold text-[#4F6D7A] mt-2">0</h3>
-                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Applied directly back to repository</p>
-            </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Service Account JSON Key Credentials</label>
+                        <textarea name="gcp_credentials" rows="3" placeholder='Paste your Google Cloud Service Account JSON key contents here... (Leave empty to keep existing key if configured)'
+                                  class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-mono"></textarea>
+                    </div>
 
-            <!-- Metric Card 4 -->
-            <div class="bg-[#C0D6DF]/20 border border-[#4F6D7A] p-8 relative transition-all duration-200 hover:bg-[#C0D6DF]/30">
-                <p class="text-[10px] font-bold text-[#4F6D7A]/70 uppercase tracking-wider">Branches Created</p>
-                <h3 class="text-3xl font-bold text-[#4F6D7A] mt-2">5</h3>
-                <p class="text-[10px] text-[#4F6D7A]/80 mt-1 font-semibold">Remediation paths tested</p>
+                    <div class="md:col-span-3 flex justify-end">
+                        <button type="submit" class="px-6 py-2.5 bg-secondary hover:opacity-90 text-white text-xs font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all duration-200 shadow-sm flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-sm">save</span>
+                            Save GCP Settings
+                        </button>
+                    </div>
+                </form>
             </div>
-        </div>
+        </section>
+
+        <!-- Trigger Manual Security Scan Panel -->
+        <section class="bg-surface rounded-2xl border border-outline-variant p-6 shadow-sm space-y-6">
+            <div>
+                <h2 class="text-base font-bold text-primary uppercase tracking-wider">Trigger Manual Security Scan</h2>
+                <p class="text-on-surface-variant text-[11px] mt-1 font-medium">Run an on-demand Gemini-powered security audit and patching cycle on a Merge Request.</p>
+            </div>
+            
+            <form id="manualScanForm" onsubmit="triggerManualScan(event)" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">GitLab Project ID / Path</label>
+                    <input type="text" id="scan_repo_name" required placeholder="soft-hive-group/project"
+                           class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-semibold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">Merge Request IID (Internal ID)</label>
+                    <input type="number" id="scan_mr_iid" required placeholder="5"
+                           class="w-full bg-background border border-outline-variant rounded-lg text-on-surface text-xs px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-semibold">
+                </div>
+                <div>
+                    <button type="submit" id="btnTriggerScan"
+                            class="w-full py-3 bg-secondary hover:opacity-90 text-white text-xs font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">play_arrow</span>
+                        Run Security Scan
+                    </button>
+                </div>
+            </form>
+            <div id="scanStatusMessage" class="hidden text-xs font-semibold uppercase tracking-wider p-3 rounded-lg border"></div>
+        </section>
 
         <!-- Security Activity Feed Section -->
-        <div class="bg-white border border-[#4F6D7A] p-10 space-y-8">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#4F6D7A]/20 pb-6">
+        <section class="bg-surface rounded-2xl border border-outline-variant p-8 space-y-6 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/30 pb-6">
                 <div>
-                    <h2 class="text-lg font-bold text-[#4F6D7A] uppercase tracking-wider">Security Activity Feed</h2>
-                    <p class="text-[#4F6D7A]/75 text-xs mt-1">Review live branch remediations for specific project environments.</p>
+                    <h2 class="text-base font-bold text-primary uppercase tracking-wider">Security Activity Feed</h2>
+                    <p class="text-on-surface-variant text-xs mt-1 font-medium">Review live branch remediations for specific project environments.</p>
                 </div>
                 
                 <!-- Repo Selection Pills -->
-                <div class="flex border border-[#4F6D7A] bg-[#C0D6DF]/15 p-1">
+                <div class="flex border border-outline-variant bg-background p-1 rounded-xl">
                     <button onclick="switchRepo('SoftHive-group/Internal-Tools')" id="repo-softhive" 
-                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 bg-[#E8DAB2] text-[#4F6D7A] cursor-pointer">
+                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 bg-primary text-white cursor-pointer shadow-sm">
                         SoftHive-group/Internal-Tools
                     </button>
                     <button onclick="switchRepo('Guardian-Shield/Web-Portal')" id="repo-guardian" 
-                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/30 cursor-pointer">
+                            class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 text-on-surface-variant hover:text-primary cursor-pointer">
                         Guardian-Shield/Web-Portal
                     </button>
                 </div>
             </div>
 
             <!-- Feed Grid Container -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="activityFeedContainer">
-                <!-- Dynamically populated by JS -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6" id="activityFeedContainer">
+                <!-- Dynamically populated by switchRepo() -->
             </div>
-        </div>
+        </section>
     </main>
 
+    <!-- Bottom Live Ensemble Streams Console -->
+    <aside id="consoleDrawer" class="fixed bottom-0 left-0 w-full h-64 bg-slate-950 border-t border-outline text-slate-100 z-50 flex flex-col font-mono text-xs transition-all duration-300">
+        <div class="sticky top-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-outline-variant/20 cursor-pointer" onclick="toggleConsoleDrawer()">
+            <div class="flex items-center gap-2 text-primary-fixed-dim">
+                <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
+                <span class="font-bold tracking-wider uppercase text-[10px] text-white">Live Ensemble Execution Streams</span>
+            </div>
+            <div class="flex items-center gap-3 text-on-surface-variant">
+                <span id="console-arrow" class="material-symbols-outlined text-white text-base">expand_more</span>
+            </div>
+        </div>
+        <div id="consoleLogsContainer" class="flex-1 overflow-y-auto p-4 space-y-1.5 select-text">
+            <!-- Dynamically populated by switchRepo() logs -->
+        </div>
+    </aside>
+
     <script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function approveScan(scanId, event) {
+            if (event) event.preventDefault();
+            if (!confirm('Are you sure you want to approve and commit this patch?')) return;
+            
+            const btn = event ? event.target : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Committing...';
+            }
+            
+            fetch(`/api/scans/${scanId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    alert(`Patch approved and committed successfully! Commit SHA: ${data.commit_sha}`);
+                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
+                        ? 'SoftHive-group/Internal-Tools' 
+                        : 'Guardian-Shield/Web-Portal';
+                    switchRepo(repoName);
+                } else {
+                    alert(`Failed to approve: ${data.error || 'Unknown error'}`);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = 'Approve & Commit';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error approving scan:', err);
+                alert('An error occurred while approving the patch.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = 'Approve & Commit';
+                }
+            });
+        }
+
+        function rejectScan(scanId) {
+            if (!confirm('Are you sure you want to reject this patch?')) return;
+            
+            fetch(`/api/scans/${scanId}/reject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    alert('Patch rejected.');
+                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
+                        ? 'SoftHive-group/Internal-Tools' 
+                        : 'Guardian-Shield/Web-Portal';
+                    switchRepo(repoName);
+                } else {
+                    alert(`Failed to reject: ${data.error || 'Unknown error'}`);
+                }
+            })
+            .catch(err => {
+                console.error('Error rejecting scan:', err);
+                alert('An error occurred while rejecting the patch.');
+            });
+        }
+
+        function triggerManualScan(event) {
+            event.preventDefault();
+            const repoName = document.getElementById('scan_repo_name').value.trim();
+            const mrIid = document.getElementById('scan_mr_iid').value.trim();
+            const btn = document.getElementById('btnTriggerScan');
+            const statusDiv = document.getElementById('scanStatusMessage');
+            
+            if (!repoName || !mrIid) return;
+            
+            btn.disabled = true;
+            btn.innerText = 'Triggering Scan...';
+            
+            statusDiv.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-400/50', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-400/50');
+            statusDiv.classList.add('bg-blue-50', 'text-blue-700', 'border', 'border-blue-400/50');
+            statusDiv.innerText = '🔄 Security scan requested. Initiating autonomous audit agent ensemble...';
+            
+            fetch('/api/scans/trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    repo_name: repoName,
+                    mr_iid: parseInt(mrIid)
+                })
+            })
+            .then(async response => {
+                const data = await response.json();
+                btn.disabled = false;
+                btn.innerText = 'Run Security Scan';
+                
+                if (response.ok && data.success) {
+                    statusDiv.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-400/50');
+                    statusDiv.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-400/50');
+                    statusDiv.innerText = '✅ ' + data.message;
+                    
+                    // Automatically switch to the repository to see findings after a delay
+                    setTimeout(() => {
+                        switchRepo(repoName);
+                    }, 3000);
+                } else {
+                    statusDiv.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-400/50');
+                    statusDiv.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-400/50');
+                    statusDiv.innerText = '❌ Failed: ' + (data.error || 'Unknown error');
+                }
+            })
+            .catch(err => {
+                console.error('Error triggering manual scan:', err);
+                btn.disabled = false;
+                btn.innerText = 'Run Security Scan';
+                statusDiv.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-400/50');
+                statusDiv.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-400/50');
+                statusDiv.innerText = '❌ Failed to connect to scan trigger endpoint.';
+            });
+        }
+
+        function toggleConfigPanel() {
+            const container = document.getElementById('configPanelContainer');
+            const arrow = document.getElementById('config-panel-arrow');
+            if (container) {
+                container.classList.toggle('hidden');
+                if (arrow) {
+                    arrow.classList.toggle('rotate-180');
+                }
+            }
+        }
+
+        let isConsoleCollapsed = false;
+        function toggleConsoleDrawer() {
+            const drawer = document.getElementById('consoleDrawer');
+            const arrow = document.getElementById('console-arrow');
+            if (isConsoleCollapsed) {
+                drawer.style.height = '16rem';
+                arrow.textContent = 'expand_more';
+                isConsoleCollapsed = false;
+            } else {
+                drawer.style.height = '2.5rem';
+                arrow.textContent = 'expand_less';
+                isConsoleCollapsed = true;
+            }
+        }
+
+        function submitFeedback(scanId, rating) {
+            fetch(`/api/scans/${scanId}/feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ feedback: rating })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
+                        ? 'SoftHive-group/Internal-Tools' 
+                        : 'Guardian-Shield/Web-Portal';
+                    switchRepo(repoName);
+                }
+            })
+            .catch(err => console.error('Error submitting feedback:', err));
+        }
+
+        // Simulated terminal logs corresponding to repos
+        const logsData = {
+            'SoftHive-group/Internal-Tools': [
+                { time: '08:14:02', tag: '[Vertex AI Orchestrator]', msg: 'Ensemble launched. Active models: Gemini-1.5-Pro, Gemini-1.5-Flash.', color: 'text-indigo-400' },
+                { time: '08:14:04', tag: '[Gemini-1.5-Flash]', msg: 'Scanning vulnerable_service.py:L7 for cloud credentials leak...', color: 'text-emerald-400' },
+                { time: '08:14:05', tag: '[Consensus Engine]', msg: 'Hardcoded AWS Key confirmed (100% consensus across 4 models).', color: 'text-amber-400' },
+                { time: '08:14:07', tag: '[Auto-Remediation]', msg: 'Conflict marker patch created. Writing patch to disk...', color: 'text-coral-500' },
+                { time: '08:14:10', tag: '[Git Orchestrator]', msg: 'Remediation pushed to branch: guardian/remediate-vulnerable_service_py_7. Skip-CI applied.', color: 'text-blue-400' },
+                { time: '08:14:15', tag: '[Gemini-1.5-Pro]', msg: 'Analyzing L20 direct user-input formats in sqlite3 query string...', color: 'text-emerald-400' },
+                { time: '08:14:18', tag: '[Consensus Engine]', msg: 'SQL Injection confirmed (100% consensus). Synthesizing unified description...', color: 'text-amber-400' },
+                { time: '08:14:20', tag: '[Auto-Remediation]', msg: 'Remediated SQL Injection with parameterized variables. Pushed successfully.', color: 'text-emerald-500' }
+            ],
+            'Guardian-Shield/Web-Portal': [
+                { time: '08:22:11', tag: '[Vertex AI Orchestrator]', msg: 'Active models initialized. Scanning routes/auth.js:L44...', color: 'text-indigo-400' },
+                { time: '08:22:13', tag: '[Gemini-1.5-Flash]', msg: 'Analyzing MD5 passwords usage in registration modules.', color: 'text-emerald-400' },
+                { time: '08:22:15', tag: '[Consensus Engine]', msg: 'Weak Cryptography detected (33% confidence match). AI Review triggered.', color: 'text-amber-400' },
+                { time: '08:22:17', tag: '[Auto-Remediation]', msg: 'Upgrading MD5 to bcrypt. Patch verified and pushed to sub-branch.', color: 'text-emerald-500' },
+                { time: '08:22:20', tag: '[Gemini-1.5-Pro]', msg: 'Scanning controllers/fileUpload.js:L105 path traversal vectors.', color: 'text-emerald-400' },
+                { time: '08:22:22', tag: '[Consensus Engine]', msg: 'Path Traversal detected (40% consensus). Generating auto-fix patch...', color: 'text-amber-400' },
+                { time: '08:22:25', tag: '[Auto-Remediation]', msg: 'ERROR: Original block matching failed. Local patch aborted.', color: 'text-red-400' }
+            ]
+        };
+
+        function populateLogs(repoName) {
+            const container = document.getElementById('consoleLogsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            const logs = logsData[repoName] || [];
+            logs.forEach(log => {
+                const line = document.createElement('div');
+                line.className = 'flex gap-2 leading-relaxed';
+                line.innerHTML = `
+                    <span class="text-slate-500 select-none">${log.time}</span>
+                    <span class="font-bold ${log.color} select-none">${log.tag}</span>
+                    <span class="text-slate-300">${log.msg}</span>
+                `;
+                container.appendChild(line);
+            });
+            // Auto scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
         function switchRepo(repoName) {
             const btnSoftHive = document.getElementById('repo-softhive');
             const btnGuardian = document.getElementById('repo-guardian');
 
-            const activeClass = 'bg-[#E8DAB2] text-[#4F6D7A]';
-            const inactiveClass = 'text-[#4F6D7A]/60 hover:text-[#4F6D7A] hover:bg-[#C0D6DF]/30';
+            const activeClass = 'bg-primary text-white shadow-sm';
+            const inactiveClass = 'text-on-surface-variant hover:text-primary';
 
             if (repoName === 'SoftHive-group/Internal-Tools') {
-                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${activeClass} cursor-pointer`;
-                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${inactiveClass} cursor-pointer`;
+                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${activeClass} cursor-pointer`;
+                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${inactiveClass} cursor-pointer`;
             } else {
-                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${activeClass} cursor-pointer`;
-                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${inactiveClass} cursor-pointer`;
+                btnGuardian.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${activeClass} cursor-pointer`;
+                btnSoftHive.className = `px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${inactiveClass} cursor-pointer`;
             }
 
-            // Fetch table data via Express API
+            // Populate terminal logs corresponding to active repo
+            populateLogs(repoName);
+
+            // Fetch scan data
             fetch(`/api/scans/${encodeURIComponent(repoName)}`)
                 .then(response => response.json())
                 .then(data => {
@@ -162,8 +545,9 @@
 
                     if (totalVulns === 0) {
                         feedContainer.innerHTML = `
-                            <div class="col-span-full border border-dashed border-[#4F6D7A]/55 p-12 text-center">
-                                <p class="text-xs text-[#4F6D7A] font-bold uppercase tracking-wider">No scans recorded for this repository.</p>
+                            <div class="col-span-full border border-dashed border-outline rounded-2xl p-12 text-center bg-surface">
+                                <span class="material-symbols-outlined text-outline-variant text-4xl mb-2">grid_view</span>
+                                <p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider">No scans recorded for this repository.</p>
                             </div>
                         `;
                         return;
@@ -178,57 +562,139 @@
                             : `https://github.com/${s.repo_name}/tree/${branchName}`;
 
                         const isPatched = s.status.includes('✅') || s.status.includes('Patched');
+                        const isPending = s.status === 'Pending Approval';
+                        const isRejected = s.status.includes('Rejected');
 
-                        let scoreBadgeClass = 'bg-[#C0D6DF]/20 text-[#4F6D7A] border-[#4F6D7A]/30';
+                        let scoreBadgeClass = 'bg-background text-primary border-outline-variant';
                         if (s.consensus_score >= 80) {
-                            scoreBadgeClass = 'bg-[#DD6E42]/10 text-[#DD6E42] border-[#DD6E42]/30';
+                            scoreBadgeClass = 'bg-red-50 text-red-700 border-red-200';
                         } else if (s.consensus_score >= 50) {
-                            scoreBadgeClass = 'bg-[#E8DAB2]/20 text-[#4F6D7A] border-[#E8DAB2]/60';
+                            scoreBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
                         }
 
-                        const statusText = isPatched ? 'Patched' : 'Failed to Apply';
-                        const statusClass = isPatched ? 'text-emerald-700 font-bold' : 'text-[#DD6E42] font-bold';
+                        let statusText = s.status;
+                        let statusClass = 'text-primary font-bold bg-surface-dim px-2 py-0.5 border border-outline-variant rounded';
 
-                        const card = document.createElement('div');
-                        card.className = 'bg-white border border-[#4F6D7A] p-8 space-y-6 flex flex-col justify-between transition-all duration-200 hover:border-[#4F6D7A]/70';
+                        if (isPatched) {
+                            statusText = s.status.replace('✅', '').trim();
+                            statusClass = 'text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 border border-emerald-200 rounded';
+                        } else if (isPending) {
+                            statusText = 'Pending Approval';
+                            statusClass = 'text-amber-700 font-bold bg-amber-50 px-2 py-0.5 border border-amber-200 rounded';
+                        } else if (isRejected) {
+                            statusText = 'Rejected';
+                            statusClass = 'text-secondary font-bold bg-red-50 px-2 py-0.5 border border-red-200 rounded';
+                        } else {
+                            statusClass = 'text-secondary font-bold bg-red-50 px-2 py-0.5 border border-red-200 rounded';
+                        }
+
+                        const card = document.createElement('article');
+                        card.className = 'bg-surface rounded-2xl border border-outline-variant p-6 flex flex-col justify-between hover:border-primary transition-all shadow-sm';
+                        
+                        let diffHtml = '';
+                        if (isPending && s.original_code && s.corrected_code) {
+                            diffHtml = `
+                                <div class="mt-4 border border-outline-variant rounded-xl p-3 bg-slate-950 text-[10px] font-mono leading-tight overflow-x-auto text-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="text-red-400 border-r border-slate-800 pr-2">
+                                        <span class="font-bold block uppercase tracking-wider text-[8px] opacity-75 mb-1 text-red-500">Vulnerable Code (Original)</span>
+                                        <pre class="bg-red-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-red-900/30">\${escapeHtml(s.original_code)}</pre>
+                                    </div>
+                                    <div class="text-emerald-400 pl-2">
+                                        <span class="font-bold block uppercase tracking-wider text-[8px] opacity-75 mb-1 text-emerald-500">Secure Patch (Remediated)</span>
+                                        <pre class="bg-emerald-950/20 p-2 whitespace-pre overflow-x-auto rounded border border-emerald-900/30">\${escapeHtml(s.corrected_code)}</pre>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        let actionsHtml = '';
+                        if (isPending) {
+                            actionsHtml = `
+                                <div class="flex items-center gap-2">
+                                    <button onclick="approveScan(\${s.id}, event)" 
+                                            class="bg-primary hover:opacity-90 text-white font-bold uppercase tracking-wider text-[9px] px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[12px]">done</span> Approve & Commit
+                                    </button>
+                                    <button onclick="rejectScan(\${s.id})" 
+                                            class="border border-secondary text-secondary hover:bg-secondary/10 font-bold uppercase tracking-wider text-[9px] px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[12px]">close</span> Reject
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            actionsHtml = `
+                                <a href="\${branchUrl}" target="_blank" 
+                                   class="bg-surface border border-outline-variant hover:border-primary text-primary font-bold uppercase tracking-wider text-[10px] px-3.5 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[12px]">open_in_new</span> View Sub-Branch
+                                </a>
+                            `;
+                        }
+
                         card.innerHTML = `
                             <div class="space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-mono text-xs text-[#4F6D7A] bg-[#C0D6DF]/20 px-2 py-1 border border-[#4F6D7A]/30">
+                                <div class="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+                                    <span class="font-mono text-[11px] text-on-surface-variant bg-background px-2.5 py-1 border border-outline-variant rounded">
                                         \${s.file}:L\${s.line}
                                     </span>
-                                    <span class="text-xs font-bold uppercase tracking-widest px-2.5 py-1 border \${scoreBadgeClass}">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 border rounded \${scoreBadgeClass}">
                                         Consensus: \${s.consensus_score}%
                                     </span>
                                 </div>
                                 
                                 <div>
-                                    <h3 class="text-base font-bold text-[#4F6D7A] tracking-tight">\${s.vulnerability}</h3>
-                                    <p class="text-xs text-[#4F6D7A]/80 mt-1.5 leading-relaxed">\${s.description}</p>
+                                    <h4 class="font-bold text-primary text-sm tracking-tight">\${s.vulnerability}</h4>
+                                    <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">\${s.description}</p>
                                 </div>
+                                \${diffHtml}
                             </div>
                             
-                            <div class="space-y-4">
-                                <div class="grid grid-cols-4 gap-2 text-[9px] font-bold uppercase tracking-wider text-center border-t border-[#4F6D7A]/20 pt-4">
-                                    <div class="py-1 bg-[#4F6D7A] text-white border border-[#4F6D7A]">Detected</div>
-                                    <div class="py-1 bg-[#4F6D7A] text-white border border-[#4F6D7A]">AI Review</div>
-                                    \${isPatched ? `
-                                        <div class="py-1 bg-[#4F6D7A] text-white border border-[#4F6D7A]">Patched</div>
-                                        <div class="py-1 bg-[#4F6D7A] text-white border border-[#4F6D7A]">Pushed</div>
-                                    ` : `
-                                        <div class="py-1 bg-white border border-[#DD6E42] text-[#DD6E42]">Failed</div>
-                                        <div class="py-1 bg-white border border-[#4F6D7A]/20 text-[#4F6D7A]/30 font-medium">Blocked</div>
-                                    `}
+                            <div class="space-y-4 mt-6">
+                                <!-- Stepper Progress Line -->
+                                <div class="flex items-center justify-between w-full my-2">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <div class="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-white"><span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check</span></div>
+                                        <span class="text-[9px] font-bold text-primary">Detected</span>
+                                    </div>
+                                    <div class="h-px bg-primary flex-1 mx-2 mt-[-16px]"></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <div class="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-white"><span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">check</span></div>
+                                        <span class="text-[9px] font-bold text-primary">AI Review</span>
+                                    </div>
+                                    <div class="h-px \${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <div class="w-4 h-4 rounded-full \${isPatched ? 'bg-primary flex items-center justify-center text-white' : (isPending ? 'bg-amber-500 flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface')}">
+                                            \${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : (isPending ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">pending</span>' : '')}
+                                        </div>
+                                        <span class="text-[9px] font-bold \${isPatched ? 'text-primary' : (isPending ? 'text-amber-500' : 'text-outline-variant')}">Patched</span>
+                                    </div>
+                                    <div class="h-px \${isPatched ? 'bg-primary' : 'bg-outline-variant'} flex-1 mx-2 mt-[-16px]"></div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <div class="w-4 h-4 rounded-full \${isPatched ? 'bg-primary flex items-center justify-center text-white' : 'border-2 border-outline-variant bg-surface'}">
+                                            \${isPatched ? '<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: \'FILL\' 1;">check</span>' : ''}
+                                        </div>
+                                        <span class="text-[9px] font-bold \${isPatched ? 'text-primary' : 'text-outline-variant'}">Pushed</span>
+                                    </div>
                                 </div>
                                 
-                                <div class="flex items-center justify-between border-t border-[#4F6D7A]/20 pt-4">
-                                    <span class="text-[11px] font-semibold text-[#4F6D7A]">
-                                        Status: <strong class="\${statusClass}">\${statusText}</strong>
-                                    </span>
-                                    <a href="\${branchUrl}" target="_blank" 
-                                       class="bg-[#DD6E42] hover:opacity-90 text-white font-bold uppercase tracking-wider text-[10px] px-3.5 py-1.5 transition-all duration-200 cursor-pointer">
-                                        View Sub-Branch
-                                    </a>
+                                <div class="flex items-center justify-between border-t border-outline-variant/30 pt-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center border border-outline-variant bg-background rounded-lg p-0.5">
+                                            <button onclick="submitFeedback(\${s.id}, '\${s.feedback === 'up' ? '' : 'up'}')" 
+                                                    class="p-1 rounded transition-all duration-200 cursor-pointer \${s.feedback === 'up' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-primary'}" 
+                                                    title="Helpful">
+                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' \${s.feedback === 'up' ? 1 : 0};">thumb_up</span>
+                                            </button>
+                                            <button onclick="submitFeedback(\${s.id}, '\${s.feedback === 'down' ? '' : 'down'}')" 
+                                                    class="p-1 border-l border-outline-variant rounded transition-all duration-200 cursor-pointer \${s.feedback === 'down' ? 'bg-secondary text-white' : 'text-on-surface-variant hover:text-primary'}" 
+                                                    title="Not Helpful">
+                                                <span class="material-symbols-outlined text-sm block" style="font-variation-settings: 'FILL' \${s.feedback === 'down' ? 1 : 0};">thumb_down</span>
+                                            </button>
+                                        </div>
+                                        <span class="text-[10px] \${statusClass}">
+                                            \${statusText}
+                                        </span>
+                                    </div>
+                                    \${actionsHtml}
                                 </div>
                             </div>
                         `;

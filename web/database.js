@@ -18,16 +18,44 @@ db.serialize(() => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            openrouter_key TEXT,
+            gemini_api_key TEXT,
             guardian_user_id TEXT UNIQUE,
+            gcp_project_id TEXT,
+            gcp_location TEXT,
+            gcp_credentials TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
-    // Migration step for existing databases
+    // Migration steps for existing databases
     db.run("ALTER TABLE users ADD COLUMN guardian_user_id TEXT", (err) => {
         // Safe to ignore if column already exists
     });
+    db.run("ALTER TABLE users ADD COLUMN gcp_project_id TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE users ADD COLUMN gcp_location TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE users ADD COLUMN gcp_credentials TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE users ADD COLUMN auto_remediation INTEGER DEFAULT 0", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE scans ADD COLUMN feedback TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE scans ADD COLUMN original_code TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE scans ADD COLUMN corrected_code TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+    db.run("ALTER TABLE scans ADD COLUMN commit_sha TEXT", (err) => {
+        // Safe to ignore if column already exists
+    });
+
 
     // 2. Create scans table for storing findings
     db.run(`
@@ -41,6 +69,10 @@ db.serialize(() => {
             vulnerability TEXT NOT NULL,
             description TEXT NOT NULL,
             status TEXT NOT NULL,
+            feedback TEXT,
+            original_code TEXT,
+            corrected_code TEXT,
+            commit_sha TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )

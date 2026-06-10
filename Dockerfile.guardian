@@ -1,0 +1,32 @@
+# Use official lightweight Python image
+FROM python:3.10-slim
+
+# Install system dependencies (Git is required for patch and branch operations)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency requirements
+RUN pip install --no-cache-dir \
+    google-genai \
+    requests \
+    pydantic \
+    tenacity
+
+# Copy the scanner script and local database directory for settings verification
+COPY guardian.py .
+COPY web/ ./web/
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Expose SSE port if running in SSE MCP mode
+EXPOSE 8000
+
+# Default command runs in stdio MCP mode
+ENTRYPOINT ["python", "guardian.py"]
+CMD ["--mcp-stdio"]

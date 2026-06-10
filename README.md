@@ -7,11 +7,11 @@ An autonomous, full-stack Security Orchestrator designed to continuously scan, m
 ## 🚀 Key Features
 
 ### 1. Vertex AI Gemini Ensemble Orchestrator
-- **Multi-Model Ensemble**: Employs an ensemble of **Google Cloud Vertex AI Gemini models** (`gemini-1.5-pro` and `gemini-1.5-flash`) run concurrently with diverse temperature profiles and customized system prompt orientations:
-  - **Gemini 1.5 Flash (Precision)**: Low temperature (0.1) for high-precision syntax issues and direct security risks.
-  - **Gemini 1.5 Pro (Deep)**: Medium-low temperature (0.2) for deep logical path analysis, tracking data flows, and identifying subtle logic flaws.
-  - **Gemini 1.5 Flash (Creative)**: Medium temperature (0.7) for wide architectural design issues, dependency vulnerabilities, and configuration flaws.
-  - **Gemini 1.5 Pro (Logical)**: High temperature (0.8) for hidden race conditions, authorization flaws (IDOR), and cryptographic weaknesses.
+- **Multi-Model Ensemble**: Employs an ensemble of **Google Cloud Vertex AI Gemini models** (`gemini-2.5-pro` and `gemini-2.5-flash`) run concurrently with diverse temperature profiles and customized system prompt orientations:
+  - **Gemini 2.5 Flash (Precision)**: Low temperature (0.1) for high-precision syntax issues and direct security risks.
+  - **Gemini 2.5 Pro (Deep)**: Medium-low temperature (0.2) for deep logical path analysis, tracking data flows, and identifying subtle logic flaws.
+  - **Gemini 2.5 Flash (Creative)**: Medium temperature (0.7) for wide architectural design issues, dependency vulnerabilities, and configuration flaws.
+  - **Gemini 2.5 Pro (Logical)**: High temperature (0.8) for hidden race conditions, authorization flaws (IDOR), and cryptographic weaknesses.
 - **Structured JSON Schema**: Leverages Vertex AI structured outputs with Pydantic schema enforcement to guarantee the returned security findings strictly comply with the expected list format.
 - **Robust Exception Handling**: Gracefully ignores transient model failures and retries calls with exponential backoff using `tenacity`.
 - **Environment Safety**: Authenticates securely via standard Google Cloud Credentials (OIDC/WIF or service accounts) without needing hardcoded keys, with `GITLAB_TOKEN` retrieved safely from environment variables.
@@ -19,11 +19,12 @@ An autonomous, full-stack Security Orchestrator designed to continuously scan, m
 ### 2. Consensus & Confidence Engine
 - **Consolidated Deduplication**: Groups identical scanner findings by file and line number across all ensemble models.
 - **Mathematical Consensus**: Calculates a Consensus Score based on what percentage of the active ensemble models flagged the specific issue.
-- **Gemini-Powered Synthesis**: Uses `gemini-1.5-pro` to synthesize diverse descriptions from different models into a single, cohesive, 1-3 sentence summary.
+- **Gemini-Powered Synthesis**: Uses `gemini-2.5-pro` to synthesize diverse descriptions from different models into a single, cohesive, 1-3 sentence summary.
 
 ### 3. Auto-Remediation Engine (Phase 2)
 - **High-Confidence Targeting**: Automatically targets any vulnerability with a Consensus Score of 30% or higher.
-- **Conflict Marker Patching**: Queries `gemini-1.5-pro` to rewrite the code block securely, returning the patch formatted using standard conflict markers:
+- **Conflict Marker Patching**: Queries `gemini-2.5-pro` to rewrite the code block securely, returning the patch formatted using standard conflict markers:
+
   ```diff
   <<<<<<< ORIGINAL
   [vulnerable code block]

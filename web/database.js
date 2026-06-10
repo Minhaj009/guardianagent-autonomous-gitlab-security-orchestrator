@@ -52,7 +52,7 @@ db.serialize(() => {
     db.run("ALTER TABLE scans ADD COLUMN corrected_code TEXT", (err) => {
         // Safe to ignore if column already exists
     });
-    db.run("ALTER TABLE users ADD COLUMN commit_sha TEXT", (err) => {
+    db.run("ALTER TABLE scans ADD COLUMN commit_sha TEXT", (err) => {
         // Safe to ignore if column already exists
     });
     db.run("ALTER TABLE users ADD COLUMN gitlab_token TEXT", (err) => {

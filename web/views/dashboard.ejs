@@ -271,7 +271,10 @@
         function startPolling(repoName) {
             if (pollingIntervals[repoName]) clearInterval(pollingIntervals[repoName]);
             let attempts = 0;
-            const maxAttempts = 15; // 75 seconds total
+            const maxAttempts = 60; // 5 minutes total (60 * 5s)
+            
+            localStorage.setItem('scan_in_progress_' + repoName.toLowerCase(), 'true');
+            localStorage.setItem('scan_in_progress_' + repoName.toLowerCase() + '_name', repoName);
             
             pollingIntervals[repoName] = setInterval(() => {
                 attempts++;
@@ -282,11 +285,15 @@
                             clearInterval(pollingIntervals[repoName]);
                             delete pollingIntervals[repoName];
                             activeScansInProgress.delete(repoName);
+                            localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase());
+                            localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase() + '_name');
                             switchRepo(repoName);
                         } else if (attempts >= maxAttempts) {
                             clearInterval(pollingIntervals[repoName]);
                             delete pollingIntervals[repoName];
                             activeScansInProgress.delete(repoName);
+                            localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase());
+                            localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase() + '_name');
                             switchRepo(repoName);
                         }
                     })
@@ -295,6 +302,8 @@
                         clearInterval(pollingIntervals[repoName]);
                         delete pollingIntervals[repoName];
                         activeScansInProgress.delete(repoName);
+                        localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase());
+                        localStorage.removeItem('scan_in_progress_' + repoName.toLowerCase() + '_name');
                     });
             }, 5000);
         }
@@ -337,6 +346,8 @@
                     
                     // Mark scan in progress and start polling
                     activeScansInProgress.add(repoName);
+                    localStorage.setItem('scan_in_progress_' + repoName.toLowerCase(), 'true');
+                    localStorage.setItem('scan_in_progress_' + repoName.toLowerCase() + '_name', repoName);
                     switchRepo(repoName);
                     startPolling(repoName);
                 } else {
@@ -381,7 +392,7 @@
                 let pillExists = false;
                 const pills = pillsContainer.querySelectorAll('.repo-pill');
                 pills.forEach(pill => {
-                    if (pill.textContent.trim() === repoName) {
+                    if (pill.textContent.trim().toLowerCase() === repoName.toLowerCase()) {
                         pillExists = true;
                     }
                 });
@@ -404,7 +415,7 @@
             // Update pill styling to highlight active repo
             const pills = document.querySelectorAll('.repo-pill');
             pills.forEach(pill => {
-                if (pill.textContent.trim() === repoName) {
+                if (pill.textContent.trim().toLowerCase() === repoName.toLowerCase()) {
                     pill.className = 'repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer bg-primary text-white shadow-sm';
                 } else {
                     pill.className = 'repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-primary';
@@ -424,8 +435,7 @@
                     const uniqueBranches = new Set(data.scans
                         .filter(s => (s.status.includes('✅') || s.status.includes('Patched') || s.status === 'Pending Approval' || s.status.includes('Rejected')) && !s.status.includes('No patch needed'))
                         .map(s => {
-                            const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
-                            return `guardian/remediate-${fileSlug}_${s.line}`;
+                            return s.commit_sha || `guardian/remediate-${s.file.replace(/[^a-zA-Z0-9]/g, '_')}_${s.line}`;
                         })
                     ).size;
 
@@ -455,11 +465,8 @@
 
                     data.scans.forEach(s => {
                         const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
-                        const branchName = `guardian/remediate-${fileSlug}_${s.line}`;
-                        const isGitLab = s.repo_name.toLowerCase().includes('gitlab') || s.repo_name.includes('SoftHive-group');
-                        const branchUrl = isGitLab 
-                            ? `https://gitlab.com/${s.repo_name}/-/tree/${branchName}` 
-                            : `https://github.com/${s.repo_name}/tree/${branchName}`;
+                        const branchName = s.commit_sha || `guardian/remediate-${fileSlug}_${s.line}`;
+                        const branchUrl = `https://gitlab.com/${s.repo_name}/-/tree/${branchName}`;
 
                         const isPatched = (s.status.includes('✅') || s.status.includes('Patched')) && !s.status.includes('No patch needed');
                         const isPending = s.status === 'Pending Approval';
@@ -608,7 +615,23 @@
 
         const activeRepos = <%- JSON.stringify(activeRepos || []) %>;
         document.addEventListener('DOMContentLoaded', () => {
-            if (activeRepos && activeRepos.length > 0) {
+            // Restore any in-progress scans from localStorage
+            let restoredRepo = null;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('scan_in_progress_') && !key.endsWith('_name')) {
+                    const repoName = localStorage.getItem(key + '_name');
+                    if (repoName) {
+                        activeScansInProgress.add(repoName);
+                        startPolling(repoName);
+                        if (!restoredRepo) restoredRepo = repoName;
+                    }
+                }
+            }
+
+            if (restoredRepo) {
+                switchRepo(restoredRepo);
+            } else if (activeRepos && activeRepos.length > 0) {
                 switchRepo(activeRepos[0]);
             }
         });

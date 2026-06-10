@@ -123,5 +123,10 @@ class TestGeminiAgent(unittest.TestCase):
         js_secure_code = "const val = JSON.parse(input);"
         self.assertIsNone(validate_patch_ast_and_safety(js_secure_code, "script.js"))
 
+        # 5. Code containing forbidden terms that were already in the original code should pass
+        original_insecure = "def process(user_input):\n    eval(user_input)\n"
+        patched_insecure = "def process(user_input):\n    # Keep original eval\n    eval(user_input)\n"
+        self.assertIsNone(validate_patch_ast_and_safety(patched_insecure, "helpers.py", original_insecure))
+
 if __name__ == "__main__":
     unittest.main()

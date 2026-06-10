@@ -191,7 +191,17 @@ app.get('/dashboard', checkAuth, (req, res) => {
                         console.error('DB error fetching user repos:', errRepos);
                         return res.status(500).send('Internal Server Error');
                     }
-                    const repos = activeRepos ? activeRepos.map(r => r.repo_name) : [];
+                    const seen = new Set();
+                    const repos = [];
+                    if (activeRepos) {
+                        activeRepos.forEach(r => {
+                            const lower = r.repo_name.toLowerCase();
+                            if (!seen.has(lower)) {
+                                seen.add(lower);
+                                repos.push(r.repo_name);
+                            }
+                        });
+                    }
                     res.render('dashboard', {
                         userEmail,
                         userId,
@@ -333,7 +343,7 @@ app.post('/api/gitlab/toggle-repo', checkAuth, (req, res) => {
 
     const isActiveVal = is_active ? 1 : 0;
 
-    db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (err, row) => {
+    db.get('SELECT id FROM user_repos WHERE user_id = ? AND LOWER(repo_name) = LOWER(?)', [userId, repo_name], (err, row) => {
         if (err) {
             console.error('DB error finding repo:', err);
             return res.status(500).json({ error: 'Database error' });
@@ -391,30 +401,36 @@ app.post('/settings/update-gcp', checkAuth, (req, res) => {
 });
 
 // GET API for repository findings (to support live UI switches)
-app.get('/api/scans/:repo', checkAuth, (req, res) => {
+app.get('/api/scans/:repo(*)', checkAuth, (req, res) => {
     const repo = req.params.repo;
     const userId = req.session.userId;
 
-    // Fetch findings for the specified repo
-    // Try user's own scans first. If none, search from global demo scans (user_id IS NULL)
-    db.all('SELECT * FROM scans WHERE user_id = ? AND repo_name = ? ORDER BY line DESC', [userId, repo], (err, rows) => {
+    // Check if the repo is in the user's own active repos (case-insensitive)
+    db.get('SELECT id FROM user_repos WHERE user_id = ? AND LOWER(repo_name) = LOWER(?) AND is_active = 1', [userId, repo], (err, repoRow) => {
         if (err) {
-            console.error('DB error:', err);
+            console.error('DB error checking user repos:', err);
             return res.status(500).json({ error: 'DB Error' });
         }
 
-        if (rows.length > 0) {
-            return res.json({ scans: rows, mode: 'live' });
+        if (repoRow) {
+            // User repository: only fetch user's own scans (no demo fallback)
+            db.all('SELECT * FROM scans WHERE user_id = ? AND LOWER(repo_name) = LOWER(?) ORDER BY line DESC', [userId, repo], (errScans, rows) => {
+                if (errScans) {
+                    console.error('DB error fetching scans:', errScans);
+                    return res.status(500).json({ error: 'DB Error' });
+                }
+                res.json({ scans: rows, mode: 'live' });
+            });
+        } else {
+            // Not user repository: fallback to demo scans (user_id IS NULL)
+            db.all('SELECT * FROM scans WHERE user_id IS NULL AND LOWER(repo_name) = LOWER(?) ORDER BY line DESC', [repo], (err2, demoRows) => {
+                if (err2) {
+                    console.error('DB error fetching demo scans:', err2);
+                    return res.status(500).json({ error: 'DB Error' });
+                }
+                res.json({ scans: demoRows, mode: 'demo' });
+            });
         }
-
-        // Fallback to demo scans
-        db.all('SELECT * FROM scans WHERE user_id IS NULL AND repo_name = ? ORDER BY line DESC', [repo], (err2, demoRows) => {
-            if (err2) {
-                console.error('DB error:', err2);
-                return res.status(500).json({ error: 'DB Error' });
-            }
-            res.json({ scans: demoRows, mode: 'demo' });
-        });
     });
 });
 
@@ -439,15 +455,15 @@ app.post('/api/scans/report', (req, res) => {
 
         const userId = user.id;
 
-        // Ensure repo is registered in user_repos so it displays on the dashboard
-        db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errRepo, repoRow) => {
+        // Ensure repo is registered in user_repos so it displays on the dashboard (case-insensitive checking)
+        db.get('SELECT id FROM user_repos WHERE user_id = ? AND LOWER(repo_name) = LOWER(?)', [userId, repo_name], (errRepo, repoRow) => {
             if (!repoRow && !errRepo) {
                 db.run('INSERT INTO user_repos (user_id, repo_name, is_active) VALUES (?, ?, 1)', [userId, repo_name]);
             }
         });
 
-        // Delete old scans for this repository under this user
-        db.run('DELETE FROM scans WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errDel) => {
+        // Delete old scans for this repository under this user (case-insensitive matching)
+        db.run('DELETE FROM scans WHERE user_id = ? AND LOWER(repo_name) = LOWER(?)', [userId, repo_name], (errDel) => {
             if (errDel) {
                 console.error('DB error deleting old scans:', errDel);
                 return res.status(500).json({ error: 'Failed to clear old scans.' });
@@ -455,8 +471,8 @@ app.post('/api/scans/report', (req, res) => {
 
             // Insert new scans
             const stmt = db.prepare(`
-                INSERT INTO scans (user_id, repo_name, file, line, consensus_score, vulnerability, description, status, original_code, corrected_code)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO scans (user_id, repo_name, file, line, consensus_score, vulnerability, description, status, original_code, corrected_code, commit_sha)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             scans.forEach(s => {
@@ -470,7 +486,8 @@ app.post('/api/scans/report', (req, res) => {
                     s.description, 
                     s.status,
                     s.original_code || null,
-                    s.corrected_code || null
+                    s.corrected_code || null,
+                    s.commit_sha || null
                 );
             });
 
@@ -483,7 +500,9 @@ app.post('/api/scans/report', (req, res) => {
             });
         });
     });
-});// POST API to update finding feedback
+});
+
+// POST API to update finding feedback
 app.post('/api/scans/:id/feedback', checkAuth, (req, res) => {
     const scanId = req.params.id;
     const { feedback } = req.body; // 'up', 'down', or null
@@ -571,7 +590,7 @@ app.post('/api/scans/:id/approve', checkAuth, async (req, res) => {
 
             const projectId = encodeURIComponent(scan.repo_name);
             const fileSlug = scan.file.replace(/[^a-zA-Z0-9]/g, '_');
-            const branchName = `guardian/remediate-${fileSlug}_${scan.line}`;
+            const branchName = scan.commit_sha || `guardian/remediate-${fileSlug}_${scan.line}`;
             const filePathEncoded = encodeURIComponent(scan.file);
 
             try {
@@ -587,8 +606,8 @@ app.post('/api/scans/:id/approve', checkAuth, async (req, res) => {
                 }
 
                 const currentContent = fetchRes.data;
-                const originalClean = scan.original_code.replace(/\r\n/g, '\n');
-                const correctedClean = scan.corrected_code.replace(/\r\n/g, '\n');
+                const originalClean = (scan.original_code || '').replace(/\r\n/g, '\n');
+                const correctedClean = (scan.corrected_code || '').replace(/\r\n/g, '\n');
 
                 if (!currentContent.replace(/\r\n/g, '\n').includes(originalClean)) {
                     return res.status(409).json({ error: 'Vulnerable code block not found in current file content. The file may have changed.' });
@@ -692,9 +711,9 @@ app.post('/api/scans/trigger', (req, res) => {
             return res.status(404).json({ error: 'User not found.' });
         }
 
-        // Ensure repo is registered in user_repos so it displays on the dashboard
+        // Ensure repo is registered in user_repos so it displays on the dashboard (case-insensitive checking)
         const userId = user.id;
-        db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errRepo, repoRow) => {
+        db.get('SELECT id FROM user_repos WHERE user_id = ? AND LOWER(repo_name) = LOWER(?)', [userId, repo_name], (errRepo, repoRow) => {
             if (!repoRow && !errRepo) {
                 db.run('INSERT INTO user_repos (user_id, repo_name, is_active) VALUES (?, ?, 1)', [userId, repo_name]);
             }

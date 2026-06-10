@@ -168,6 +168,24 @@ def fetch_merge_request_diff(project_id: str, mr_iid: int, gitlab_url: str, toke
     return changes
 
 
+def fetch_merge_request_info(project_id: str, mr_iid: int, gitlab_url: str, token: str) -> Dict[str, Any]:
+    """
+    Fetches the detail of a target Merge Request using the GitLab API to get source branch, target branch, etc.
+    
+    API Endpoint: GET /projects/:id/merge_requests/:merge_request_iid
+    """
+    logger.info(f"Fetching info for MR !{mr_iid} in project {project_id}...")
+    safe_project_id = urllib.parse.quote_plus(project_id)
+    url = f"{gitlab_url.rstrip('/')}/api/v4/projects/{safe_project_id}/merge_requests/{mr_iid}"
+    headers = {
+        "PRIVATE-TOKEN": token,
+        "Accept": "application/json"
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
+
 def get_ensemble_models() -> List[Dict[str, Any]]:
     """
     Returns the configurations for the Gemini Vertex AI ensemble.
@@ -802,7 +820,7 @@ def report_scans_to_portal(guardian_user_id: str, repo_name: str, scans: List[Di
     }
     logger.info(f"Reporting {len(scans)} findings to Guardian portal at {url}...")
     try:
-        response = requests.post(url, json=payload, timeout=15)
+        response = requests.post(url, json=payload, headers={"Connection": "close"}, timeout=15)
         if response.status_code == 200:
             logger.info("Successfully reported scans to Guardian portal.")
         else:
@@ -1195,7 +1213,66 @@ def run_orchestrator(project_id, mr_iid, gitlab_url, token, gcp_project, gcp_loc
         logger.critical(f"Failed to initialize Vertex AI client: {e}")
         return
         
+    import tempfile
+    import shutil
+    
+    temp_dir = None
+    original_cwd = os.getcwd()
+    
+    # Check if we are already inside a git repository (e.g. in GitLab CI pipeline)
+    is_git_repo = False
     try:
+        res = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+        if res.returncode == 0 and res.stdout.strip() == "true":
+            is_git_repo = True
+    except Exception:
+        pass
+        
+    try:
+        if not is_git_repo:
+            temp_dir = tempfile.mkdtemp()
+            logger.info(f"Not in a git repository. Created temporary directory for git clone: {temp_dir}")
+            
+            # Fetch MR details to get the source branch name
+            mr_info = fetch_merge_request_info(project_id, mr_iid, gitlab_url, token)
+            source_branch = mr_info.get("source_branch")
+            logger.info(f"MR source branch is: {source_branch}")
+            
+            # Configure git to resolve network/proxy issues in serverless environment
+            try:
+                subprocess.run(["git", "config", "--global", "http.version", "HTTP/1.1"], capture_output=True)
+                subprocess.run(["git", "config", "--global", "http.postBuffer", "52428800"], capture_output=True)
+            except Exception as e:
+                logger.warning(f"Failed to set global git configs: {e}")
+
+            # Enable verbose git/curl logging for Cloud Run diagnostics
+            os.environ["GIT_TRACE"] = "1"
+            os.environ["GIT_CURL_VERBOSE"] = "1"
+
+            # Clone the repository into temp_dir using HTTP headers instead of credentials in URL
+            parsed_url = urllib.parse.urlparse(gitlab_url)
+            git_clone_url = f"https://{parsed_url.netloc}/{project_id}.git"
+            
+            logger.info(f"Cloning project {project_id} (branch: {source_branch}) into {temp_dir}...")
+            subprocess.run([
+                "git",
+                "-c", f"http.extraHeader=PRIVATE-TOKEN: {token}",
+                "-c", "http.sslVerify=false",
+                "clone", 
+                "-4",
+                "--branch", source_branch, 
+                "--single-branch", 
+                "--depth", "1",
+                git_clone_url, 
+                temp_dir
+            ], check=True)
+            
+            # Change working directory to the cloned repo
+            os.chdir(temp_dir)
+            logger.info(f"Changed working directory to: {temp_dir}")
+        else:
+            logger.info("Already inside a git repository. Running in-place without cloning.")
+
         # 1. Fetch changes
         changes = fetch_merge_request_diff(project_id, mr_iid, gitlab_url, token)
         
@@ -1255,6 +1332,14 @@ def run_orchestrator(project_id, mr_iid, gitlab_url, token, gcp_project, gcp_loc
         
     except Exception as e:
         logger.critical(f"Guardian orchestrator failed: {str(e)}")
+    finally:
+        if temp_dir:
+            os.chdir(original_cwd)
+            try:
+                shutil.rmtree(temp_dir)
+                logger.info(f"Cleaned up temporary directory: {temp_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temp dir {temp_dir}: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="GitLab Security Guardian Vertex AI Ensemble Orchestrator")

@@ -191,6 +191,10 @@
 
 
     <script>
+        let currentActiveRepo = '';
+        const activeScansInProgress = new Set();
+        let pollingIntervals = {};
+
         function escapeHtml(text) {
             if (!text) return '';
             return text
@@ -221,10 +225,7 @@
                 const data = await response.json();
                 if (response.ok && data.success) {
                     alert(`Patch approved and committed successfully! Commit SHA: ${data.commit_sha}`);
-                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
-                        ? 'SoftHive-group/Internal-Tools' 
-                        : 'Guardian-Shield/Web-Portal';
-                    switchRepo(repoName);
+                    switchRepo(currentActiveRepo);
                 } else {
                     alert(`Failed to approve: ${data.error || 'Unknown error'}`);
                     if (btn) {
@@ -256,10 +257,7 @@
                 const data = await response.json();
                 if (response.ok && data.success) {
                     alert('Patch rejected.');
-                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
-                        ? 'SoftHive-group/Internal-Tools' 
-                        : 'Guardian-Shield/Web-Portal';
-                    switchRepo(repoName);
+                    switchRepo(currentActiveRepo);
                 } else {
                     alert(`Failed to reject: ${data.error || 'Unknown error'}`);
                 }
@@ -268,6 +266,37 @@
                 console.error('Error rejecting scan:', err);
                 alert('An error occurred while rejecting the patch.');
             });
+        }
+
+        function startPolling(repoName) {
+            if (pollingIntervals[repoName]) clearInterval(pollingIntervals[repoName]);
+            let attempts = 0;
+            const maxAttempts = 15; // 75 seconds total
+            
+            pollingIntervals[repoName] = setInterval(() => {
+                attempts++;
+                fetch(`/api/scans/${encodeURIComponent(repoName)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.scans && data.scans.length > 0) {
+                            clearInterval(pollingIntervals[repoName]);
+                            delete pollingIntervals[repoName];
+                            activeScansInProgress.delete(repoName);
+                            switchRepo(repoName);
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(pollingIntervals[repoName]);
+                            delete pollingIntervals[repoName];
+                            activeScansInProgress.delete(repoName);
+                            switchRepo(repoName);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error polling scans:', err);
+                        clearInterval(pollingIntervals[repoName]);
+                        delete pollingIntervals[repoName];
+                        activeScansInProgress.delete(repoName);
+                    });
+            }, 5000);
         }
 
         function triggerManualScan(event) {
@@ -306,10 +335,10 @@
                     statusDiv.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-400/50');
                     statusDiv.innerText = '✅ ' + data.message;
                     
-                    // Automatically switch to the repository to see findings after a delay
-                    setTimeout(() => {
-                        switchRepo(repoName);
-                    }, 3000);
+                    // Mark scan in progress and start polling
+                    activeScansInProgress.add(repoName);
+                    switchRepo(repoName);
+                    startPolling(repoName);
                 } else {
                     statusDiv.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-400/50');
                     statusDiv.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-400/50');
@@ -326,10 +355,6 @@
             });
         }
 
-
-
-
-
         function submitFeedback(scanId, rating) {
             fetch(`/api/scans/${scanId}/feedback`, {
                 method: 'POST',
@@ -341,18 +366,42 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const repoName = document.getElementById('repo-softhive').className.includes('bg-primary') 
-                        ? 'SoftHive-group/Internal-Tools' 
-                        : 'Guardian-Shield/Web-Portal';
-                    switchRepo(repoName);
+                    switchRepo(currentActiveRepo);
                 }
             })
             .catch(err => console.error('Error submitting feedback:', err));
         }
 
-
-
         function switchRepo(repoName) {
+            currentActiveRepo = repoName;
+
+            // Dynamically ensure the repository pill exists in the list
+            const pillsContainer = document.getElementById('repoPillsContainer');
+            if (pillsContainer) {
+                let pillExists = false;
+                const pills = pillsContainer.querySelectorAll('.repo-pill');
+                pills.forEach(pill => {
+                    if (pill.textContent.trim() === repoName) {
+                        pillExists = true;
+                    }
+                });
+                
+                if (!pillExists) {
+                    // Remove "No active repositories connected" placeholder if present
+                    const noActiveSpan = pillsContainer.querySelector('span');
+                    if (noActiveSpan && noActiveSpan.textContent.includes('No active')) {
+                        pillsContainer.innerHTML = '';
+                    }
+                    
+                    const newPill = document.createElement('button');
+                    newPill.onclick = () => switchRepo(repoName);
+                    newPill.className = 'repo-pill px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer text-on-surface-variant hover:text-primary';
+                    newPill.textContent = repoName;
+                    pillsContainer.appendChild(newPill);
+                }
+            }
+
+            // Update pill styling to highlight active repo
             const pills = document.querySelectorAll('.repo-pill');
             pills.forEach(pill => {
                 if (pill.textContent.trim() === repoName) {
@@ -362,8 +411,6 @@
                 }
             });
 
-
-
             // Fetch scan data
             fetch(`/api/scans/${encodeURIComponent(repoName)}`)
                 .then(response => response.json())
@@ -372,23 +419,37 @@
                     feedContainer.innerHTML = '';
 
                     const totalVulns = data.scans.length;
-                    const totalPatched = data.scans.filter(s => s.status.includes('✅')).length;
-                    const uniqueBranches = new Set(data.scans.map(s => {
-                        const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
-                        return `guardian/remediate-${fileSlug}_${s.line}`;
-                    })).size;
+                    const totalPatched = data.scans.filter(s => s.status.includes('✅') && !s.status.includes('No patch needed')).length;
+                    
+                    const uniqueBranches = new Set(data.scans
+                        .filter(s => (s.status.includes('✅') || s.status.includes('Patched') || s.status === 'Pending Approval' || s.status.includes('Rejected')) && !s.status.includes('No patch needed'))
+                        .map(s => {
+                            const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
+                            return `guardian/remediate-${fileSlug}_${s.line}`;
+                        })
+                    ).size;
 
                     document.getElementById('metricVulns').innerText = totalVulns;
                     document.getElementById('metricPatches').innerText = totalPatched;
                     document.getElementById('metricBranches').innerText = uniqueBranches;
 
                     if (totalVulns === 0) {
-                        feedContainer.innerHTML = `
-                            <div class="col-span-full border border-dashed border-outline rounded-2xl p-12 text-center bg-surface">
-                                <span class="material-symbols-outlined text-outline-variant text-4xl mb-2">grid_view</span>
-                                <p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider">No scans recorded for this repository.</p>
-                            </div>
-                        `;
+                        if (activeScansInProgress.has(repoName)) {
+                            feedContainer.innerHTML = `
+                                <div class="col-span-full border border-dashed border-primary rounded-2xl p-12 text-center bg-surface shadow-sm">
+                                    <span class="material-symbols-outlined text-primary text-4xl mb-4 animate-spin">sync</span>
+                                    <p class="text-xs text-primary font-bold uppercase tracking-wider">Security scan in progress...</p>
+                                    <p class="text-[11px] text-on-surface-variant mt-2 font-medium">Analyzing GitLab Merge Request using Gemini models. This takes about 45-60 seconds.</p>
+                                </div>
+                            `;
+                        } else {
+                            feedContainer.innerHTML = `
+                                <div class="col-span-full border border-dashed border-outline rounded-2xl p-12 text-center bg-surface">
+                                    <span class="material-symbols-outlined text-outline-variant text-4xl mb-2">grid_view</span>
+                                    <p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider">No scans recorded for this repository.</p>
+                                </div>
+                            `;
+                        }
                         return;
                     }
 
@@ -400,7 +461,7 @@
                             ? `https://gitlab.com/${s.repo_name}/-/tree/${branchName}` 
                             : `https://github.com/${s.repo_name}/tree/${branchName}`;
 
-                        const isPatched = s.status.includes('✅') || s.status.includes('Patched');
+                        const isPatched = (s.status.includes('✅') || s.status.includes('Patched')) && !s.status.includes('No patch needed');
                         const isPending = s.status === 'Pending Approval';
                         const isRejected = s.status.includes('Rejected');
 
@@ -424,7 +485,7 @@
                             statusText = 'Rejected';
                             statusClass = 'text-secondary font-bold bg-red-50 px-2 py-0.5 border border-red-200 rounded';
                         } else {
-                            statusClass = 'text-secondary font-bold bg-red-50 px-2 py-0.5 border border-red-200 rounded';
+                            statusClass = 'text-on-surface-variant font-bold bg-surface-dim px-2 py-0.5 border border-outline-variant rounded';
                         }
 
                         const card = document.createElement('article');
@@ -460,7 +521,7 @@
                                     </button>
                                 </div>
                             `;
-                        } else {
+                        } else if (isPatched) {
                             actionsHtml = `
                                 <a href="${branchUrl}" target="_blank" 
                                    class="bg-surface border border-outline-variant hover:border-primary text-primary font-bold uppercase tracking-wider text-[10px] px-3.5 py-2 rounded-lg transition-all duration-200 cursor-pointer shadow-sm flex items-center gap-1">

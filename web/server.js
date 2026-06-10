@@ -439,6 +439,13 @@ app.post('/api/scans/report', (req, res) => {
 
         const userId = user.id;
 
+        // Ensure repo is registered in user_repos so it displays on the dashboard
+        db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errRepo, repoRow) => {
+            if (!repoRow && !errRepo) {
+                db.run('INSERT INTO user_repos (user_id, repo_name, is_active) VALUES (?, ?, 1)', [userId, repo_name]);
+            }
+        });
+
         // Delete old scans for this repository under this user
         db.run('DELETE FROM scans WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errDel) => {
             if (errDel) {
@@ -684,6 +691,14 @@ app.post('/api/scans/trigger', (req, res) => {
         if (err || !user) {
             return res.status(404).json({ error: 'User not found.' });
         }
+
+        // Ensure repo is registered in user_repos so it displays on the dashboard
+        const userId = user.id;
+        db.get('SELECT id FROM user_repos WHERE user_id = ? AND repo_name = ?', [userId, repo_name], (errRepo, repoRow) => {
+            if (!repoRow && !errRepo) {
+                db.run('INSERT INTO user_repos (user_id, repo_name, is_active) VALUES (?, ?, 1)', [userId, repo_name]);
+            }
+        });
 
         const gcpProjectId = process.env.GCP_PROJECT_ID;
         const gcpLocation = process.env.GCP_LOCATION || 'us-central1';

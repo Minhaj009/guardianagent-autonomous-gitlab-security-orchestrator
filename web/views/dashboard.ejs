@@ -124,7 +124,7 @@
             <div class="bg-surface rounded-2xl p-6 border border-outline-variant relative overflow-hidden group hover:border-primary transition-colors shadow-sm">
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
                 <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Branches Tested</p>
-                <h3 class="text-3xl font-bold text-on-surface">5</h3>
+                <h3 id="metricBranches" class="text-3xl font-bold text-on-surface">0</h3>
                 <p class="text-[10px] text-tertiary mt-2 font-semibold">Remediation paths verified</p>
             </div>
         </section>
@@ -441,9 +441,14 @@
 
                     const totalVulns = data.scans.length;
                     const totalPatched = data.scans.filter(s => s.status.includes('✅')).length;
+                    const uniqueBranches = new Set(data.scans.map(s => {
+                        const fileSlug = s.file.replace(/[^a-zA-Z0-9]/g, '_');
+                        return `guardian/remediate-${fileSlug}_${s.line}`;
+                    })).size;
 
                     document.getElementById('metricVulns').innerText = totalVulns;
                     document.getElementById('metricPatches').innerText = totalPatched;
+                    document.getElementById('metricBranches').innerText = uniqueBranches;
 
                     if (totalVulns === 0) {
                         feedContainer.innerHTML = `

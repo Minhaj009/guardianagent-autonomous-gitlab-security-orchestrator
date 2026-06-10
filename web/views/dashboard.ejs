@@ -188,21 +188,7 @@
         </section>
     </main>
 
-    <!-- Bottom Live Ensemble Streams Console -->
-    <aside id="consoleDrawer" class="fixed bottom-0 left-0 w-full h-64 bg-slate-950 border-t border-outline text-slate-100 z-50 flex flex-col font-mono text-xs transition-all duration-300">
-        <div class="sticky top-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-outline-variant/20 cursor-pointer" onclick="toggleConsoleDrawer()">
-            <div class="flex items-center gap-2 text-primary-fixed-dim">
-                <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
-                <span class="font-bold tracking-wider uppercase text-[10px] text-white">Live Ensemble Execution Streams</span>
-            </div>
-            <div class="flex items-center gap-3 text-on-surface-variant">
-                <span id="console-arrow" class="material-symbols-outlined text-white text-base">expand_more</span>
-            </div>
-        </div>
-        <div id="consoleLogsContainer" class="flex-1 overflow-y-auto p-4 space-y-1.5 select-text">
-            <!-- Dynamically populated by switchRepo() logs -->
-        </div>
-    </aside>
+
 
     <script>
         function escapeHtml(text) {
@@ -342,20 +328,7 @@
 
 
 
-        let isConsoleCollapsed = false;
-        function toggleConsoleDrawer() {
-            const drawer = document.getElementById('consoleDrawer');
-            const arrow = document.getElementById('console-arrow');
-            if (isConsoleCollapsed) {
-                drawer.style.height = '16rem';
-                arrow.textContent = 'expand_more';
-                isConsoleCollapsed = false;
-            } else {
-                drawer.style.height = '2.5rem';
-                arrow.textContent = 'expand_less';
-                isConsoleCollapsed = true;
-            }
-        }
+
 
         function submitFeedback(scanId, rating) {
             fetch(`/api/scans/${scanId}/feedback`, {
@@ -377,47 +350,7 @@
             .catch(err => console.error('Error submitting feedback:', err));
         }
 
-        // Simulated terminal logs corresponding to repos
-        const logsData = {
-            'SoftHive-group/Internal-Tools': [
-                { time: '08:14:02', tag: '[Vertex AI Orchestrator]', msg: 'Ensemble launched. Active models: Gemini-1.5-Pro, Gemini-1.5-Flash.', color: 'text-indigo-400' },
-                { time: '08:14:04', tag: '[Gemini-1.5-Flash]', msg: 'Scanning vulnerable_service.py:L7 for cloud credentials leak...', color: 'text-emerald-400' },
-                { time: '08:14:05', tag: '[Consensus Engine]', msg: 'Hardcoded AWS Key confirmed (100% consensus across 4 models).', color: 'text-amber-400' },
-                { time: '08:14:07', tag: '[Auto-Remediation]', msg: 'Conflict marker patch created. Writing patch to disk...', color: 'text-coral-500' },
-                { time: '08:14:10', tag: '[Git Orchestrator]', msg: 'Remediation pushed to branch: guardian/remediate-vulnerable_service_py_7. Skip-CI applied.', color: 'text-blue-400' },
-                { time: '08:14:15', tag: '[Gemini-1.5-Pro]', msg: 'Analyzing L20 direct user-input formats in sqlite3 query string...', color: 'text-emerald-400' },
-                { time: '08:14:18', tag: '[Consensus Engine]', msg: 'SQL Injection confirmed (100% consensus). Synthesizing unified description...', color: 'text-amber-400' },
-                { time: '08:14:20', tag: '[Auto-Remediation]', msg: 'Remediated SQL Injection with parameterized variables. Pushed successfully.', color: 'text-emerald-500' }
-            ],
-            'Guardian-Shield/Web-Portal': [
-                { time: '08:22:11', tag: '[Vertex AI Orchestrator]', msg: 'Active models initialized. Scanning routes/auth.js:L44...', color: 'text-indigo-400' },
-                { time: '08:22:13', tag: '[Gemini-1.5-Flash]', msg: 'Analyzing MD5 passwords usage in registration modules.', color: 'text-emerald-400' },
-                { time: '08:22:15', tag: '[Consensus Engine]', msg: 'Weak Cryptography detected (33% confidence match). AI Review triggered.', color: 'text-amber-400' },
-                { time: '08:22:17', tag: '[Auto-Remediation]', msg: 'Upgrading MD5 to bcrypt. Patch verified and pushed to sub-branch.', color: 'text-emerald-500' },
-                { time: '08:22:20', tag: '[Gemini-1.5-Pro]', msg: 'Scanning controllers/fileUpload.js:L105 path traversal vectors.', color: 'text-emerald-400' },
-                { time: '08:22:22', tag: '[Consensus Engine]', msg: 'Path Traversal detected (40% consensus). Generating auto-fix patch...', color: 'text-amber-400' },
-                { time: '08:22:25', tag: '[Auto-Remediation]', msg: 'ERROR: Original block matching failed. Local patch aborted.', color: 'text-red-400' }
-            ]
-        };
 
-        function populateLogs(repoName) {
-            const container = document.getElementById('consoleLogsContainer');
-            if (!container) return;
-            container.innerHTML = '';
-            const logs = logsData[repoName] || [];
-            logs.forEach(log => {
-                const line = document.createElement('div');
-                line.className = 'flex gap-2 leading-relaxed';
-                line.innerHTML = `
-                    <span class="text-slate-500 select-none">${log.time}</span>
-                    <span class="font-bold ${log.color} select-none">${log.tag}</span>
-                    <span class="text-slate-300">${log.msg}</span>
-                `;
-                container.appendChild(line);
-            });
-            // Auto scroll to bottom
-            container.scrollTop = container.scrollHeight;
-        }
 
         function switchRepo(repoName) {
             const pills = document.querySelectorAll('.repo-pill');
@@ -429,8 +362,7 @@
                 }
             });
 
-            // Populate terminal logs corresponding to active repo
-            populateLogs(repoName);
+
 
             // Fetch scan data
             fetch(`/api/scans/${encodeURIComponent(repoName)}`)

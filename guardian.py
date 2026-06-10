@@ -174,10 +174,10 @@ def get_ensemble_models() -> List[Dict[str, Any]]:
     Different configurations run with varying temperatures and prompt targets to build consensus.
     """
     return [
-        {"name": "gemini-2.0-flash", "temperature": 0.1, "system_suffix": "Focus on high-precision syntax issues and direct security risks.", "id": "Gemini-2.0-Flash (Precision)"},
-        {"name": "gemini-2.0-pro", "temperature": 0.2, "system_suffix": "Perform deep logical path analysis, trace data flows, and find subtle logic flaws.", "id": "Gemini-2.0-Pro (Deep)"},
-        {"name": "gemini-2.0-flash", "temperature": 0.7, "system_suffix": "Look widely for architectural design issues, dependency vulnerabilities, and configuration flaws.", "id": "Gemini-2.0-Flash (Creative)"},
-        {"name": "gemini-2.0-pro", "temperature": 0.8, "system_suffix": "Look closely for hidden race conditions, authorization issues (IDOR), and cryptographic weaknesses.", "id": "Gemini-2.0-Pro (Logical)"}
+        {"name": "gemini-2.5-flash", "temperature": 0.1, "system_suffix": "Focus on high-precision syntax issues and direct security risks.", "id": "Gemini-2.5-Flash (Precision)"},
+        {"name": "gemini-2.5-pro", "temperature": 0.2, "system_suffix": "Perform deep logical path analysis, trace data flows, and find subtle logic flaws.", "id": "Gemini-2.5-Pro (Deep)"},
+        {"name": "gemini-2.5-flash", "temperature": 0.7, "system_suffix": "Look widely for architectural design issues, dependency vulnerabilities, and configuration flaws.", "id": "Gemini-2.5-Flash (Creative)"},
+        {"name": "gemini-2.5-pro", "temperature": 0.8, "system_suffix": "Look closely for hidden race conditions, authorization issues (IDOR), and cryptographic weaknesses.", "id": "Gemini-2.5-Pro (Logical)"}
     ]
 
 
@@ -266,7 +266,7 @@ def synthesize_descriptions_with_llm(grouped_list: List[Dict[str, Any]], client:
     
     try:
         response = client.models.generate_content(
-            model="gemini-2.0-pro",
+            model="gemini-2.5-pro",
             contents=json.dumps(input_data),
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
@@ -319,7 +319,7 @@ def generate_remediation_patch(client: genai.Client, file_path: str, vuln_type: 
     )
     
     response = client.models.generate_content(
-        model="gemini-2.0-pro",
+        model="gemini-2.5-pro",
         contents=user_content,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,

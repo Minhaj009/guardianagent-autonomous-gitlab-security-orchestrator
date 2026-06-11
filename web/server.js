@@ -202,17 +202,6 @@ app.get('/dashboard', checkAuth, (req, res) => {
                             }
                         });
                     }
-                    
-                    // Always include the mock demo repositories so they are available out-of-the-box
-                    if (!seen.has('softhive-group/internal-tools')) {
-                        seen.add('softhive-group/internal-tools');
-                        repos.push('SoftHive-group/Internal-Tools');
-                    }
-                    if (!seen.has('guardian-shield/web-portal')) {
-                        seen.add('guardian-shield/web-portal');
-                        repos.push('Guardian-Shield/Web-Portal');
-                    }
-
                     res.render('dashboard', {
                         userEmail,
                         userId,

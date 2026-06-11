@@ -294,7 +294,7 @@ app.get('/api/gitlab/projects', checkAuth, async (req, res) => {
         }
 
         try {
-            const fetchRes = await fetch('https://gitlab.com/api/v4/projects?membership=true&min_access_level=30&simple=true&per_page=100', {
+            const fetchRes = await fetch('https://gitlab.com/api/v4/projects?membership=true&simple=true&per_page=100', {
                 headers: {
                     'PRIVATE-TOKEN': token
                 }
@@ -305,6 +305,7 @@ app.get('/api/gitlab/projects', checkAuth, async (req, res) => {
             }
 
             const projects = await fetchRes.json();
+            console.log(`Successfully fetched ${projects.length} projects from GitLab API.`);
 
             // Fetch active repositories for this user from database
             db.all('SELECT repo_name, is_active FROM user_repos WHERE user_id = ?', [userId], (err2, activeRepos) => {

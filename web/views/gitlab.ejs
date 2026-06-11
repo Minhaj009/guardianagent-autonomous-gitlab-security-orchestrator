@@ -130,6 +130,17 @@
                     </form>
                 </div>
 
+                <!-- Guardian Account Key Info -->
+                <div class="bg-surface-dim/40 rounded-xl p-4 border border-outline-variant/50 text-xs text-on-surface-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <p class="font-bold text-primary uppercase tracking-wider text-[10px]">Your Guardian Account Key</p>
+                        <p class="text-[11px] font-medium font-mono text-on-surface mt-1"><%= guardianUserId %></p>
+                    </div>
+                    <button onclick="navigator.clipboard.writeText('<%= guardianUserId %>'); alert('Account key copied!');" class="py-1.5 px-3 border border-outline hover:border-primary text-[10px] font-bold uppercase tracking-wider text-primary bg-surface transition-all rounded-lg flex items-center gap-1 cursor-pointer">
+                        <span class="material-symbols-outlined text-xs">content_copy</span> Copy Key
+                    </button>
+                </div>
+
                 <!-- Repo search & dynamic list -->
                 <div class="space-y-4">
                     <div class="relative">
